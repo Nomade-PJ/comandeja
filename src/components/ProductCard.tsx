@@ -41,13 +41,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-200">
-            <span className="text-gray-400">No image</span>
+            <span className="text-gray-400">Sem imagem</span>
           </div>
         )}
         
         {!product.available && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="text-white font-bold">Unavailable</span>
+            <span className="text-white font-bold">Indisponível</span>
           </div>
         )}
       </div>
@@ -70,7 +70,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             className="w-full" 
             onClick={handleEdit}
           >
-            Edit
+            Editar
           </Button>
         ) : (
           <Button 
@@ -79,7 +79,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             disabled={!product.available}
           >
             <ShoppingCart className="h-4 w-4" />
-            Add to Cart
+            Adicionar ao Carrinho
           </Button>
         )}
       </CardContent>

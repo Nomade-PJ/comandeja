@@ -29,8 +29,8 @@ const Login = () => {
     
     if (!email || !password) {
       toast({
-        title: 'Error',
-        description: 'Please fill in all fields.',
+        title: 'Erro',
+        description: 'Por favor, preencha todos os campos.',
         variant: 'destructive',
       });
       return;
@@ -53,15 +53,22 @@ const Login = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-primary">ServeQuick</h1>
-          <p className="text-gray-500 mt-2">Welcome back! Log in to your account.</p>
+          <div className="flex justify-center items-center mb-2">
+            <img 
+              src="/lovable-uploads/6ec02b00-828d-41c4-ad7c-9365cabb57ca.png" 
+              alt="ComandeJá" 
+              className="h-10 mr-2" 
+            />
+            <h1 className="text-3xl font-bold text-[#4E3B8D]">ComandeJá</h1>
+          </div>
+          <p className="text-gray-500 mt-2">Bem-vindo de volta! Entre na sua conta.</p>
         </div>
         
         <Card>
           <CardHeader>
             <CardTitle>Login</CardTitle>
             <CardDescription>
-              Enter your email and password to access your dashboard.
+              Digite seu email e senha para acessar seu painel.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
@@ -71,7 +78,7 @@ const Login = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="your@email.com"
+                  placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -79,9 +86,9 @@ const Login = () => {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">Senha</Label>
                   <Link to="/forgot-password" className="text-sm text-primary hover:underline">
-                    Forgot password?
+                    Esqueceu a senha?
                   </Link>
                 </div>
                 <Input
@@ -100,12 +107,12 @@ const Login = () => {
                 className="w-full"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Logging in...' : 'Login'}
+                {isSubmitting ? 'Entrando...' : 'Entrar'}
               </Button>
               <p className="text-sm text-center text-gray-500">
-                Don't have an account?{' '}
+                Não tem uma conta?{' '}
                 <Link to="/register" className="text-primary hover:underline">
-                  Register
+                  Cadastre-se
                 </Link>
               </p>
             </CardFooter>
@@ -114,7 +121,7 @@ const Login = () => {
         
         <div className="text-center mt-8">
           <Link to="/" className="text-gray-500 hover:text-gray-700 text-sm">
-            ← Back to home
+            ← Voltar para home
           </Link>
         </div>
       </div>

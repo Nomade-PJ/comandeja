@@ -92,8 +92,8 @@ const ProductsPage = () => {
     
     if (!productName || !productDescription || !productPrice || !productCategory) {
       toast({
-        title: "Error",
-        description: "Please fill in all required fields.",
+        title: "Erro",
+        description: "Por favor, preencha todos os campos obrigatórios.",
         variant: "destructive",
       });
       return;
@@ -101,8 +101,8 @@ const ProductsPage = () => {
     
     if (isNaN(priceValue) || priceValue <= 0) {
       toast({
-        title: "Error",
-        description: "Please enter a valid price.",
+        title: "Erro",
+        description: "Por favor, insira um preço válido.",
         variant: "destructive",
       });
       return;
@@ -120,8 +120,8 @@ const ProductsPage = () => {
     if (isNewProduct) {
       addProduct(productData);
       toast({
-        title: "Success",
-        description: "Product added successfully.",
+        title: "Sucesso",
+        description: "Produto adicionado com sucesso.",
       });
     } else if (currentProduct) {
       updateProduct({
@@ -129,8 +129,8 @@ const ProductsPage = () => {
         id: currentProduct.id,
       });
       toast({
-        title: "Success",
-        description: "Product updated successfully.",
+        title: "Sucesso",
+        description: "Produto atualizado com sucesso.",
       });
     }
     
@@ -143,8 +143,8 @@ const ProductsPage = () => {
     
     if (!categoryName) {
       toast({
-        title: "Error",
-        description: "Please enter a category name.",
+        title: "Erro",
+        description: "Por favor, insira um nome para a categoria.",
         variant: "destructive",
       });
       return;
@@ -156,8 +156,8 @@ const ProductsPage = () => {
     });
     
     toast({
-      title: "Success",
-      description: "Category added successfully.",
+      title: "Sucesso",
+      description: "Categoria adicionada com sucesso.",
     });
     
     setCategoryName('');
@@ -170,21 +170,21 @@ const ProductsPage = () => {
     if (currentProduct) {
       deleteProduct(currentProduct.id);
       toast({
-        title: "Success",
-        description: "Product deleted successfully.",
+        title: "Sucesso",
+        description: "Produto excluído com sucesso.",
       });
       setIsProductDialogOpen(false);
     }
   };
   
   return (
-    <DashboardLayout title="Products">
+    <DashboardLayout title="Produtos">
       <div className="bg-white rounded-lg shadow-sm mb-8">
         <div className="p-4 border-b">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
             <div className="w-full md:w-1/2">
               <Input
-                placeholder="Search products..."
+                placeholder="Buscar produtos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -192,10 +192,10 @@ const ProductsPage = () => {
             
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setIsCategoryDialogOpen(true)}>
-                Add Category
+                Adicionar Categoria
               </Button>
               <Button onClick={handleAddProductClick}>
-                Add Product
+                Adicionar Produto
               </Button>
             </div>
           </div>
@@ -208,7 +208,7 @@ const ProductsPage = () => {
         >
           <div className="px-4 border-b overflow-x-auto">
             <TabsList className="h-12">
-              <TabsTrigger value="all">All Products</TabsTrigger>
+              <TabsTrigger value="all">Todos os Produtos</TabsTrigger>
               {categories.map(category => (
                 <TabsTrigger key={category.id} value={category.id}>
                   {category.name}
@@ -231,9 +231,9 @@ const ProductsPage = () => {
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-gray-500">No products found.</p>
+                <p className="text-gray-500">Nenhum produto encontrado.</p>
                 <Button variant="outline" className="mt-4" onClick={handleAddProductClick}>
-                  Add your first product
+                  Adicionar seu primeiro produto
                 </Button>
               </div>
             )}
@@ -254,9 +254,9 @@ const ProductsPage = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-gray-500">No products in this category.</p>
+                  <p className="text-gray-500">Nenhum produto nesta categoria.</p>
                   <Button variant="outline" className="mt-4" onClick={handleAddProductClick}>
-                    Add a product to {category.name}
+                    Adicionar um produto a {category.name}
                   </Button>
                 </div>
               )}
@@ -269,11 +269,11 @@ const ProductsPage = () => {
       <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>{isNewProduct ? 'Add New Product' : 'Edit Product'}</DialogTitle>
+            <DialogTitle>{isNewProduct ? 'Adicionar Novo Produto' : 'Editar Produto'}</DialogTitle>
             <DialogDescription>
               {isNewProduct 
-                ? 'Add a new product to your menu.' 
-                : 'Make changes to your product here.'}
+                ? 'Adicione um novo produto ao seu cardápio.' 
+                : 'Faça alterações no seu produto aqui.'}
             </DialogDescription>
           </DialogHeader>
           
@@ -281,7 +281,7 @@ const ProductsPage = () => {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">
-                  Name *
+                  Nome *
                 </Label>
                 <Input
                   id="name"
@@ -294,7 +294,7 @@ const ProductsPage = () => {
               
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="description" className="text-right">
-                  Description *
+                  Descrição *
                 </Label>
                 <Textarea
                   id="description"
@@ -307,7 +307,7 @@ const ProductsPage = () => {
               
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="price" className="text-right">
-                  Price (R$) *
+                  Preço (R$) *
                 </Label>
                 <Input
                   id="price"
@@ -323,14 +323,14 @@ const ProductsPage = () => {
               
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="category" className="text-right">
-                  Category *
+                  Categoria *
                 </Label>
                 <Select 
                   value={productCategory} 
                   onValueChange={setProductCategory}
                 >
                   <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a category" />
+                    <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map(category => (
@@ -344,20 +344,20 @@ const ProductsPage = () => {
               
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="imageUrl" className="text-right">
-                  Image URL
+                  URL da Imagem
                 </Label>
                 <Input
                   id="imageUrl"
                   value={productImage}
                   onChange={(e) => setProductImage(e.target.value)}
                   className="col-span-3"
-                  placeholder="https://example.com/image.jpg"
+                  placeholder="https://exemplo.com/imagem.jpg"
                 />
               </div>
               
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="available" className="text-right">
-                  Available
+                  Disponível
                 </Label>
                 <div className="flex items-center space-x-2 col-span-3">
                   <Switch
@@ -366,7 +366,7 @@ const ProductsPage = () => {
                     onCheckedChange={setProductAvailable}
                   />
                   <Label htmlFor="available">
-                    {productAvailable ? 'Yes' : 'No'}
+                    {productAvailable ? 'Sim' : 'Não'}
                   </Label>
                 </div>
               </div>
@@ -380,13 +380,13 @@ const ProductsPage = () => {
                   onClick={handleDeleteProduct}
                   className="mr-auto"
                 >
-                  Delete
+                  Excluir
                 </Button>
               )}
               <Button type="button" variant="outline" onClick={() => setIsProductDialogOpen(false)}>
-                Cancel
+                Cancelar
               </Button>
-              <Button type="submit">Save</Button>
+              <Button type="submit">Salvar</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -396,9 +396,9 @@ const ProductsPage = () => {
       <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Add New Category</DialogTitle>
+            <DialogTitle>Adicionar Nova Categoria</DialogTitle>
             <DialogDescription>
-              Create a new category for your menu.
+              Crie uma nova categoria para o seu cardápio.
             </DialogDescription>
           </DialogHeader>
           
@@ -406,7 +406,7 @@ const ProductsPage = () => {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="categoryName" className="text-right">
-                  Name *
+                  Nome *
                 </Label>
                 <Input
                   id="categoryName"
@@ -419,7 +419,7 @@ const ProductsPage = () => {
               
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="categoryDescription" className="text-right">
-                  Description
+                  Descrição
                 </Label>
                 <Textarea
                   id="categoryDescription"
@@ -432,9 +432,9 @@ const ProductsPage = () => {
             
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsCategoryDialogOpen(false)}>
-                Cancel
+                Cancelar
               </Button>
-              <Button type="submit">Save</Button>
+              <Button type="submit">Salvar</Button>
             </DialogFooter>
           </form>
         </DialogContent>

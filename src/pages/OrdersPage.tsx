@@ -58,14 +58,28 @@ const OrdersPage = () => {
     setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
   };
   
+  // Traduzir status de pedidos
+  const translateStatus = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      'all': 'Todos',
+      'pending': 'Pendentes',
+      'confirmed': 'Confirmados',
+      'preparing': 'Preparando',
+      'ready': 'Prontos',
+      'delivered': 'Entregues',
+      'cancelled': 'Cancelados'
+    };
+    return statusMap[status] || status;
+  };
+  
   return (
-    <DashboardLayout title="Orders">
+    <DashboardLayout title="Pedidos">
       <div className="bg-white rounded-lg shadow-sm mb-8">
         <div className="p-4 border-b">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
             <div className="w-full md:w-1/2">
               <Input
-                placeholder="Search by customer name, phone, or order ID..."
+                placeholder="Buscar por nome do cliente, telefone ou ID do pedido..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -81,43 +95,43 @@ const OrdersPage = () => {
           <div className="px-4 border-b">
             <TabsList className="grid grid-flow-col auto-cols-fr">
               <TabsTrigger value="all">
-                All
+                Todos
                 <Badge variant="outline" className="ml-2">
                   {orderCounts.all || 0}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="pending">
-                Pending
+                Pendentes
                 <Badge variant="outline" className="ml-2">
                   {orderCounts.pending || 0}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="confirmed">
-                Confirmed
+                Confirmados
                 <Badge variant="outline" className="ml-2">
                   {orderCounts.confirmed || 0}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="preparing">
-                Preparing
+                Preparando
                 <Badge variant="outline" className="ml-2">
                   {orderCounts.preparing || 0}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="ready">
-                Ready
+                Prontos
                 <Badge variant="outline" className="ml-2">
                   {orderCounts.ready || 0}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="delivered">
-                Delivered
+                Entregues
                 <Badge variant="outline" className="ml-2">
                   {orderCounts.delivered || 0}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="cancelled">
-                Cancelled
+                Cancelados
                 <Badge variant="outline" className="ml-2">
                   {orderCounts.cancelled || 0}
                 </Badge>
@@ -209,7 +223,7 @@ const OrdersList: React.FC<OrdersListProps> = ({
   if (orders.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">No orders match your filters.</p>
+        <p className="text-gray-500">Nenhum pedido corresponde aos seus filtros.</p>
       </div>
     );
   }
