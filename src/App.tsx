@@ -12,6 +12,11 @@ import Dashboard from "./pages/Dashboard";
 import OrdersPage from "./pages/OrdersPage";
 import ProductsPage from "./pages/ProductsPage";
 import MenuPage from "./pages/MenuPage";
+import CustomersPage from "./pages/CustomersPage";
+import ReportsPage from "./pages/ReportsPage";
+import CouponsPage from "./pages/CouponsPage";
+import ReviewsPage from "./pages/ReviewsPage";
+import SettingsPage from "./pages/SettingsPage";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RestaurantProvider } from "./contexts/RestaurantContext";
 import PrivateRoute from "./components/PrivateRoute";
@@ -54,6 +59,46 @@ const App = () => (
                 element={
                   <PrivateRoute>
                     <ProductsPage />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/customers" 
+                element={
+                  <PrivateRoute>
+                    <CustomersPage />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/reports" 
+                element={
+                  <PrivateRoute>
+                    <ReportsPage />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/coupons" 
+                element={
+                  <PrivateRoute>
+                    <CouponsPage />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/reviews" 
+                element={
+                  <PrivateRoute>
+                    <ReviewsPage />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/settings" 
+                element={
+                  <PrivateRoute>
+                    <SettingsPage />
                   </PrivateRoute>
                 } 
               />

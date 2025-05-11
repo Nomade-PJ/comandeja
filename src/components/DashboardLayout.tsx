@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +9,12 @@ import {
   ShoppingCart, 
   Clock, 
   Calendar,
-  MapPin
+  MapPin,
+  Users,
+  BarChart3,
+  Settings,
+  FileText,
+  MessageSquare
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -25,6 +31,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
     { name: 'Dashboard', path: '/dashboard', icon: <Calendar className="w-5 h-5" /> },
     { name: 'Pedidos', path: '/orders', icon: <ShoppingCart className="w-5 h-5" /> },
     { name: 'Produtos', path: '/products', icon: <Package className="w-5 h-5" /> },
+    { name: 'Clientes', path: '/customers', icon: <Users className="w-5 h-5" /> },
+    { name: 'Relatórios', path: '/reports', icon: <BarChart3 className="w-5 h-5" /> },
+    { name: 'Cupons', path: '/coupons', icon: <FileText className="w-5 h-5" /> },
+    { name: 'Avaliações', path: '/reviews', icon: <MessageSquare className="w-5 h-5" /> },
+    { name: 'Configurações', path: '/settings', icon: <Settings className="w-5 h-5" /> },
   ];
 
   const handleLogout = () => {
