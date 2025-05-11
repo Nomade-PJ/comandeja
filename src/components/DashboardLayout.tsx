@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,11 +39,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="flex items-center">
-              <img 
-                src="/lovable-uploads/6ec02b00-828d-41c4-ad7c-9365cabb57ca.png" 
-                alt="ComandeJá" 
-                className="h-8 mr-2" 
-              />
               <div className="font-bold text-[#4E3B8D] text-2xl">ComandeJá</div>
             </div>
             {restaurant && (

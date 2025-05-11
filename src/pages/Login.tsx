@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -54,11 +53,6 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <div className="flex justify-center items-center mb-2">
-            <img 
-              src="/lovable-uploads/6ec02b00-828d-41c4-ad7c-9365cabb57ca.png" 
-              alt="ComandeJá" 
-              className="h-10 mr-2" 
-            />
             <h1 className="text-3xl font-bold text-[#4E3B8D]">ComandeJá</h1>
           </div>
           <p className="text-gray-500 mt-2">Bem-vindo de volta! Entre na sua conta.</p>

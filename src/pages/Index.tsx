@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,11 +11,6 @@ const Index = () => {
       <header className="bg-white border-b">
         <div className="container mx-auto py-4 px-6 flex justify-between items-center">
           <div className="flex items-center">
-            <img 
-              src="/lovable-uploads/6ec02b00-828d-41c4-ad7c-9365cabb57ca.png" 
-              alt="ComandeJá" 
-              className="h-10 mr-2" 
-            />
             <span className="text-2xl font-bold text-[#4E3B8D]">ComandeJá</span>
           </div>
           <nav className="flex items-center space-x-4">
@@ -127,11 +121,6 @@ const Index = () => {
           <div className="flex flex-col md:flex-row justify-between">
             <div className="mb-8 md:mb-0">
               <div className="flex items-center mb-4">
-                <img 
-                  src="/lovable-uploads/6ec02b00-828d-41c4-ad7c-9365cabb57ca.png" 
-                  alt="ComandeJá" 
-                  className="h-8 mr-2" 
-                />
                 <h3 className="text-2xl font-bold">ComandeJá</h3>
               </div>
               <p className="text-gray-400 max-w-xs">
