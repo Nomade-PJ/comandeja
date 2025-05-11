@@ -26,11 +26,11 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: '#FF7043',
+					DEFAULT: '#FF7A21', // Laranja da logo
 					foreground: 'white'
 				},
 				secondary: {
-					DEFAULT: '#4CAF50',
+					DEFAULT: '#4E3B8D', // Roxo da logo
 					foreground: 'white'
 				},
 				accent: {

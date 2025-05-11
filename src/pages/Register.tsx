@@ -31,8 +31,8 @@ const Register = () => {
     
     if (!name || !email || !password || !confirmPassword) {
       toast({
-        title: 'Error',
-        description: 'Please fill in all fields.',
+        title: 'Erro',
+        description: 'Preencha todos os campos.',
         variant: 'destructive',
       });
       return;
@@ -40,8 +40,8 @@ const Register = () => {
     
     if (password !== confirmPassword) {
       toast({
-        title: 'Error',
-        description: 'Passwords do not match.',
+        title: 'Erro',
+        description: 'As senhas não coincidem.',
         variant: 'destructive',
       });
       return;
@@ -64,24 +64,31 @@ const Register = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-primary">ServeQuick</h1>
-          <p className="text-gray-500 mt-2">Create your account and start managing your restaurant.</p>
+          <div className="flex justify-center items-center mb-2">
+            <img 
+              src="/lovable-uploads/6ec02b00-828d-41c4-ad7c-9365cabb57ca.png" 
+              alt="ComandeJá" 
+              className="h-10 mr-2" 
+            />
+            <h1 className="text-3xl font-bold text-[#4E3B8D]">ComandeJá</h1>
+          </div>
+          <p className="text-gray-500 mt-2">Crie sua conta e comece a gerenciar seu restaurante.</p>
         </div>
         
         <Card>
           <CardHeader>
-            <CardTitle>Register</CardTitle>
+            <CardTitle>Cadastro</CardTitle>
             <CardDescription>
-              Enter your information to create an account.
+              Insira suas informações para criar uma conta.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Restaurant Name</Label>
+                <Label htmlFor="name">Nome do Restaurante</Label>
                 <Input
                   id="name"
-                  placeholder="Your Restaurant Name"
+                  placeholder="Nome do Seu Restaurante"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -92,14 +99,14 @@ const Register = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="your@email.com"
+                  placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Senha</Label>
                 <Input
                   id="password"
                   type="password"
@@ -110,7 +117,7 @@ const Register = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -127,12 +134,12 @@ const Register = () => {
                 className="w-full"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Creating account...' : 'Create Account'}
+                {isSubmitting ? 'Criando conta...' : 'Criar Conta'}
               </Button>
               <p className="text-sm text-center text-gray-500">
-                Already have an account?{' '}
+                Já tem uma conta?{' '}
                 <Link to="/login" className="text-primary hover:underline">
-                  Login
+                  Entrar
                 </Link>
               </p>
             </CardFooter>
@@ -141,7 +148,7 @@ const Register = () => {
         
         <div className="text-center mt-8">
           <Link to="/" className="text-gray-500 hover:text-gray-700 text-sm">
-            ← Back to home
+            ← Voltar para home
           </Link>
         </div>
       </div>

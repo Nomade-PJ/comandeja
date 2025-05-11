@@ -24,8 +24,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: <Calendar className="w-5 h-5" /> },
-    { name: 'Orders', path: '/orders', icon: <ShoppingCart className="w-5 h-5" /> },
-    { name: 'Products', path: '/products', icon: <Package className="w-5 h-5" /> },
+    { name: 'Pedidos', path: '/orders', icon: <ShoppingCart className="w-5 h-5" /> },
+    { name: 'Produtos', path: '/products', icon: <Package className="w-5 h-5" /> },
   ];
 
   const handleLogout = () => {
@@ -39,7 +39,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="font-bold text-primary text-2xl">ServeQuick</div>
+            <div className="flex items-center">
+              <img 
+                src="/lovable-uploads/6ec02b00-828d-41c4-ad7c-9365cabb57ca.png" 
+                alt="ComandeJá" 
+                className="h-8 mr-2" 
+              />
+              <div className="font-bold text-[#4E3B8D] text-2xl">ComandeJá</div>
+            </div>
             {restaurant && (
               <div className="px-2 py-1 bg-gray-100 rounded text-sm">
                 {restaurant.name}
@@ -53,7 +60,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
               </div>
             )}
             <Button variant="outline" size="sm" onClick={handleLogout}>
-              Logout
+              Sair
             </Button>
           </div>
         </div>
@@ -81,7 +88,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           
           {restaurant && (
             <div className="mt-8 p-4 border-t border-gray-200">
-              <div className="text-sm font-medium text-gray-500 mb-2">Restaurant Info</div>
+              <div className="text-sm font-medium text-gray-500 mb-2">Informações do Restaurante</div>
               <div className="space-y-2">
                 <div className="flex items-center text-sm">
                   <Clock className="w-4 h-4 mr-2 text-gray-500" />
