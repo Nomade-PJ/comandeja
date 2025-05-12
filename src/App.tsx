@@ -25,6 +25,12 @@ import AdminRoute from "./components/AdminRoute";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
+import AdminClients from "./pages/admin/AdminClients";
+import AdminPlans from "./pages/admin/AdminPlans";
+import AdminSupport from "./pages/admin/AdminSupport";
+import AdminReports from "./pages/admin/AdminReports";
+import AdminNotifications from "./pages/admin/AdminNotifications";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +56,54 @@ const App = () => (
                   element={
                     <AdminRoute>
                       <AdminDashboard />
+                    </AdminRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin/subscriptions" 
+                  element={
+                    <AdminRoute>
+                      <AdminSubscriptions />
+                    </AdminRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin/clients" 
+                  element={
+                    <AdminRoute>
+                      <AdminClients />
+                    </AdminRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin/plans" 
+                  element={
+                    <AdminRoute>
+                      <AdminPlans />
+                    </AdminRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin/support" 
+                  element={
+                    <AdminRoute>
+                      <AdminSupport />
+                    </AdminRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin/reports" 
+                  element={
+                    <AdminRoute>
+                      <AdminReports />
+                    </AdminRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin/notifications" 
+                  element={
+                    <AdminRoute>
+                      <AdminNotifications />
                     </AdminRoute>
                   } 
                 />
