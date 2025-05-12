@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 
 type AdminUser = {
@@ -21,30 +21,16 @@ const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefin
 
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
-  const [isAdminLoading, setIsAdminLoading] = useState(true);
+  const [isAdminLoading, setIsAdminLoading] = useState(false);
   const { toast } = useToast();
   
-  // Check if admin is logged in on mount
-  useEffect(() => {
-    const storedAdminUser = localStorage.getItem('comandeJaAdminUser');
-    
-    if (storedAdminUser) {
-      try {
-        setAdminUser(JSON.parse(storedAdminUser));
-      } catch (error) {
-        console.error('Failed to parse admin user data', error);
-        localStorage.removeItem('comandeJaAdminUser');
-      }
-    }
-    
-    setIsAdminLoading(false);
-  }, []);
+  // LocalStorage has been removed. In a real implementation, this would check with PostgreSQL
 
   const adminLogin = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsAdminLoading(true);
       
-      // In a real app, this would validate against the database
+      // In a real app, this would validate against PostgreSQL database
       // For now we'll hardcode the admin credentials
       if (email === 'admin@comandeja.com' && password === 'comandeja@24h') {
         const adminUser: AdminUser = {
@@ -55,7 +41,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         };
 
         setAdminUser(adminUser);
-        localStorage.setItem('comandeJaAdminUser', JSON.stringify(adminUser));
+        // Removed localStorage.setItem
         
         toast({
           title: "Login bem-sucedido",
@@ -99,15 +85,11 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return false;
       }
       
-      // In a real app, this would update the password in the database
-      // For demo purposes, we'll just show a success message
+      // In a real app, this would update the password in PostgreSQL
       toast({
         title: "Senha atualizada",
         description: "Sua senha foi atualizada com sucesso.",
       });
-      
-      // Note: In a real implementation, we would update the stored password
-      // and require re-login with the new password
       
       return true;
     } catch (error) {
@@ -125,7 +107,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const adminLogout = () => {
     setAdminUser(null);
-    localStorage.removeItem('comandeJaAdminUser');
+    // Removed localStorage.removeItem
     toast({
       title: "Logout realizado",
       description: "Você saiu do painel administrativo.",

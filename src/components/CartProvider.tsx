@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { Product } from '@/contexts/RestaurantContext';
 import { useToast } from "@/components/ui/use-toast";
 
@@ -29,32 +29,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode; restaurantId?: 
   const [items, setItems] = useState<CartItem[]>([]);
   const { toast } = useToast();
   
-  // Load cart from local storage on mount and when restaurantId changes
-  useEffect(() => {
-    if (!restaurantId) return;
-    
-    const cartKey = `serveQuick_cart_${restaurantId}`;
-    const storedCart = localStorage.getItem(cartKey);
-    
-    if (storedCart) {
-      try {
-        setItems(JSON.parse(storedCart));
-      } catch (error) {
-        console.error('Failed to parse cart data', error);
-        localStorage.removeItem(cartKey);
-      }
-    } else {
-      setItems([]);
-    }
-  }, [restaurantId]);
-  
-  // Save cart to local storage when it changes
-  useEffect(() => {
-    if (!restaurantId) return;
-    
-    const cartKey = `serveQuick_cart_${restaurantId}`;
-    localStorage.setItem(cartKey, JSON.stringify(items));
-  }, [items, restaurantId]);
+  // All localStorage references removed - in a real implementation, this would use PostgreSQL
+  // to store and retrieve cart information
   
   const addToCart = (product: Product, quantity: number, notes?: string) => {
     setItems(currentItems => {

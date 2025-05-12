@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 
 type User = {
@@ -21,32 +21,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   
-  // Check if user is logged in on mount
-  useEffect(() => {
-    const storedUser = localStorage.getItem('serveQuickUser');
-    
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Failed to parse user data', error);
-        localStorage.removeItem('serveQuickUser');
-      }
-    }
-    
-    setIsLoading(false);
-  }, []);
+  // LocalStorage references removed - in real implementation, this would check PostgreSQL
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       
-      // Mock login - in a real app, this would be an API call
-      // For demo purposes, we'll accept any email/password
-      
+      // Mock login - in a real app, this would be a PostgreSQL query
       // Wait 1 second to simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -59,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       setUser(mockUser);
-      localStorage.setItem('serveQuickUser', JSON.stringify(mockUser));
+      // Removed localStorage.setItem
       
       toast({
         title: "Login successful",
@@ -84,8 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Mock registration - in a real app, this would be an API call
-      
+      // Mock registration - in a real app, this would be a PostgreSQL insertion
       // Wait 1 second to simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -98,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       setUser(mockUser);
-      localStorage.setItem('serveQuickUser', JSON.stringify(mockUser));
+      // Removed localStorage.setItem
       
       toast({
         title: "Registration successful",
@@ -121,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('serveQuickUser');
+    // Removed localStorage.removeItem
     toast({
       title: "Logged out",
       description: "You have been logged out successfully.",
