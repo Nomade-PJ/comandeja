@@ -32,6 +32,7 @@ Este diretório (`/menu`) contém a documentação essencial para o projeto:
 
 - [DATABASE.md](./DATABASE.md): Estrutura completa do banco de dados PostgreSQL
 - [ROUTES.md](./ROUTES.md): Rotas e navegação do sistema
+- [ADMIN.md](./ADMIN.md): Estrutura do Menu Administrativo para o SaaS
 
 ## Arquitetura
 
