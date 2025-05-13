@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import AdminDashboardLayout from '@/components/AdminDashboardLayout';
 import {
@@ -118,12 +119,15 @@ const plansData = [
   { name: 'Enterprise', value: 5, color: '#82ca9d' },
 ];
 
+// Define the proper date range type
+type DateRangeType = {
+  from: Date;
+  to: Date;
+};
+
 const AdminReports = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRangeType>({
     from: new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1),
     to: new Date(),
   });
@@ -161,14 +165,21 @@ const AdminReports = () => {
                 initialFocus
                 mode="range"
                 defaultMonth={dateRange.from}
-                selected={dateRange}
+                selected={{
+                  from: dateRange.from,
+                  to: dateRange.to
+                }}
                 onSelect={(range) => {
                   if (range?.from && range?.to) {
-                    setDateRange(range);
+                    setDateRange({
+                      from: range.from,
+                      to: range.to
+                    });
                     // In a real implementation, we would fetch data for this range
                   }
                 }}
                 locale={ptBR}
+                className="pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
