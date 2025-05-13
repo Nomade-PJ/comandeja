@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +16,8 @@ import {
   FileText,
   MessageSquare,
   Menu,
-  X
+  X,
+  Database
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -41,6 +41,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
     { name: 'Cupons', path: '/coupons', icon: <FileText className="w-5 h-5" /> },
     { name: 'Avaliações', path: '/reviews', icon: <MessageSquare className="w-5 h-5" /> },
     { name: 'Configurações', path: '/settings', icon: <Settings className="w-5 h-5" /> },
+    { name: 'Banco de Dados', path: '/database-info', icon: <Database className="w-5 h-5" /> },
   ];
 
   // For mobile, select only the main navigation items for the bottom bar
@@ -126,7 +127,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                 <div className="space-y-2">
                   <div className="flex items-center text-sm">
                     <Clock className="w-4 h-4 mr-2 text-gray-500" />
-                    <span>{restaurant.openingHours}</span>
+                    <span>{restaurant.opening_hours}</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <MapPin className="w-4 h-4 mr-2 text-gray-500" />

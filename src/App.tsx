@@ -16,6 +16,7 @@ import ReportsPage from "./pages/ReportsPage";
 import CouponsPage from "./pages/CouponsPage";
 import ReviewsPage from "./pages/ReviewsPage";
 import SettingsPage from "./pages/SettingsPage";
+import DatabaseInfo from "./pages/DatabaseInfo";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RestaurantProvider } from "./contexts/RestaurantContext";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
@@ -122,6 +123,16 @@ const App = () => (
                       <AdminSettings />
                     </AdminRoute>
                   } 
+                />
+                
+                {/* Database Info Route */}
+                <Route
+                  path="/database-info"
+                  element={
+                    <PrivateRoute>
+                      <DatabaseInfo />
+                    </PrivateRoute>
+                  }
                 />
                 
                 {/* Protected Restaurant Routes */}

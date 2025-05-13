@@ -8,6 +8,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    watch: {
+      usePolling: true,
+    },
+    hmr: {
+      overlay: true,
+    },
   },
   plugins: [
     react(),
@@ -17,6 +23,14 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  optimizeDeps: {
+    exclude: ['pg'], // Excluir pg das dependências otimizadas
+  },
+  build: {
+    commonjsOptions: {
+      esmExternals: true, 
     },
   },
 }));

@@ -1,6 +1,6 @@
-
 import React, { createContext, useContext, useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
+import { AuthService } from '@/lib/services/auth-service';
 
 type User = {
   id: string;
@@ -35,36 +35,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Mock login - in a real app, this would be a PostgreSQL query
-      // Wait 1 second to simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Create a restaurant slug based on email (in a real app, would be fetched from DB)
-      const restaurantSlug = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-');
-
-      // Create a sample user
-      const mockUser: User = {
-        id: '1',
-        name: 'Restaurant Owner',
-        email,
-        restaurantId: 'resto-1',
-        restaurantSlug,
+      // Usar o serviço de autenticação com PostgreSQL
+      const loggedUser = await AuthService.login(email, password);
+      
+      if (!loggedUser) {
+        toast({
+          title: "Login falhou",
+          description: "Verifique suas credenciais e tente novamente.",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      // Converter formato para o padrão do nosso contexto
+      const contextUser: User = {
+        id: loggedUser.id,
+        name: loggedUser.name,
+        email: loggedUser.email,
+        restaurantId: loggedUser.restaurantId,
+        restaurantSlug: loggedUser.restaurantSlug,
         role: 'owner'
       };
-
-      setUser(mockUser);
+      
+      setUser(contextUser);
       
       toast({
-        title: "Login successful",
-        description: "Welcome back!",
+        title: "Login bem-sucedido",
+        description: "Bem-vindo de volta!",
       });
       
       return true;
     } catch (error) {
-      console.error('Login failed', error);
+      console.error('Login falhou', error);
       toast({
-        title: "Login failed",
-        description: "Please check your credentials and try again.",
+        title: "Login falhou",
+        description: "Ocorreu um erro. Tente novamente mais tarde.",
         variant: "destructive"
       });
       return false;
@@ -78,36 +83,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Mock registration - in a real app, this would be a PostgreSQL insertion
-      // Wait 1 second to simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Create a restaurant slug based on restaurant name
-      const restaurantSlug = restaurantName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-
-      // Create a new user
-      const mockUser: User = {
-        id: Date.now().toString(),
-        name,
-        email,
-        restaurantId: `resto-${Date.now()}`,
-        restaurantSlug,
+      // Usar o serviço de autenticação com PostgreSQL
+      const newUser = await AuthService.register(name, email, password, restaurantName);
+      
+      if (!newUser) {
+        toast({
+          title: "Registro falhou",
+          description: "Não foi possível criar sua conta. O email já pode estar em uso.",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      // Converter formato para o padrão do nosso contexto
+      const contextUser: User = {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        restaurantId: newUser.restaurantId,
+        restaurantSlug: newUser.restaurantSlug,
         role: 'owner'
       };
-
-      setUser(mockUser);
+      
+      setUser(contextUser);
       
       toast({
-        title: "Registration successful",
-        description: "Your account has been created!",
+        title: "Registro bem-sucedido",
+        description: "Sua conta foi criada com sucesso!",
       });
       
       return true;
     } catch (error) {
-      console.error('Registration failed', error);
+      console.error('Registro falhou', error);
       toast({
-        title: "Registration failed",
-        description: "Please try again later.",
+        title: "Registro falhou",
+        description: "Ocorreu um erro. Tente novamente mais tarde.",
         variant: "destructive"
       });
       return false;
@@ -121,20 +131,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Mock API call - in a real app this would send a reset email
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Usar o serviço de autenticação com PostgreSQL
+      const success = await AuthService.requestPasswordReset(email);
       
       toast({
-        title: "Password reset requested",
-        description: "If an account exists with this email, you will receive reset instructions.",
+        title: "Redefinição de senha solicitada",
+        description: "Se uma conta existir com este email, você receberá instruções de redefinição.",
       });
       
-      return true;
+      return success;
     } catch (error) {
-      console.error('Password reset request failed', error);
+      console.error('Solicitação de redefinição de senha falhou', error);
       toast({
-        title: "Request failed",
-        description: "Please try again later.",
+        title: "Solicitação falhou",
+        description: "Ocorreu um erro. Tente novamente mais tarde.",
         variant: "destructive"
       });
       return false;
@@ -148,20 +158,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Mock API call - in a real app this would validate the token and update password
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Usar o serviço de autenticação com PostgreSQL
+      const success = await AuthService.resetPassword(token, newPassword);
+      
+      if (!success) {
+        toast({
+          title: "Redefinição falhou",
+          description: "Token inválido ou expirado. Por favor, solicite um novo link de redefinição.",
+          variant: "destructive"
+        });
+        return false;
+      }
       
       toast({
-        title: "Password reset successful",
-        description: "Your password has been updated. You can now login with your new password.",
+        title: "Senha redefinida com sucesso",
+        description: "Sua senha foi atualizada. Você pode agora fazer login com sua nova senha.",
       });
       
       return true;
     } catch (error) {
-      console.error('Password reset failed', error);
+      console.error('Redefinição de senha falhou', error);
       toast({
-        title: "Reset failed",
-        description: "Invalid or expired token. Please request a new reset link.",
+        title: "Redefinição falhou",
+        description: "Ocorreu um erro. Tente novamente mais tarde.",
         variant: "destructive"
       });
       return false;
@@ -175,30 +194,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Mock customer registration - in a real app, this would be a PostgreSQL insertion
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Create a new customer user
-      const mockUser: User = {
-        id: Date.now().toString(),
-        name,
-        email,
-        role: 'customer'
-      };
-
-      setUser(mockUser);
+      // Usar o serviço de autenticação com PostgreSQL
+      const success = await AuthService.registerCustomer(name, email, phone, password, restaurantSlug);
+      
+      if (!success) {
+        toast({
+          title: "Registro falhou",
+          description: "Não foi possível criar sua conta de cliente.",
+          variant: "destructive"
+        });
+        return false;
+      }
       
       toast({
-        title: "Registration successful",
-        description: "Your customer account has been created!",
+        title: "Registro bem-sucedido",
+        description: "Sua conta de cliente foi criada com sucesso!",
       });
       
       return true;
     } catch (error) {
-      console.error('Customer registration failed', error);
+      console.error('Registro de cliente falhou', error);
       toast({
-        title: "Registration failed",
-        description: "Please try again later.",
+        title: "Registro falhou",
+        description: "Ocorreu um erro. Tente novamente mais tarde.",
         variant: "destructive"
       });
       return false;
@@ -212,30 +230,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Mock customer login - in a real app, this would be a PostgreSQL query
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Create a sample customer user
-      const mockUser: User = {
-        id: Date.now().toString(),
-        name: 'Customer User',
-        email,
+      // Usar o serviço de autenticação com PostgreSQL
+      const customerUser = await AuthService.customerLogin(email, password, restaurantSlug);
+      
+      if (!customerUser) {
+        toast({
+          title: "Login falhou",
+          description: "Verifique suas credenciais e tente novamente.",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      // Converter formato para o padrão do nosso contexto
+      const contextUser: User = {
+        id: customerUser.id,
+        name: customerUser.name,
+        email: customerUser.email,
+        restaurantId: customerUser.restaurantId,
         role: 'customer'
       };
-
-      setUser(mockUser);
+      
+      setUser(contextUser);
       
       toast({
-        title: "Login successful",
-        description: "Welcome back!",
+        title: "Login bem-sucedido",
+        description: "Bem-vindo de volta!",
       });
       
       return true;
     } catch (error) {
-      console.error('Customer login failed', error);
+      console.error('Login de cliente falhou', error);
       toast({
-        title: "Login failed",
-        description: "Please check your credentials and try again.",
+        title: "Login falhou",
+        description: "Ocorreu um erro. Tente novamente mais tarde.",
         variant: "destructive"
       });
       return false;
@@ -247,23 +275,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     toast({
-      title: "Logged out",
-      description: "You have been logged out successfully.",
+      title: "Logout realizado",
+      description: "Você foi desconectado com sucesso.",
     });
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      register, 
-      logout, 
-      isLoading,
-      requestPasswordReset,
-      resetPassword,
-      registerCustomer,
-      customerLogin
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        requestPasswordReset,
+        resetPassword,
+        registerCustomer,
+        customerLogin,
+        isLoading
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
