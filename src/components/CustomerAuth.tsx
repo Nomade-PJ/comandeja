@@ -63,12 +63,16 @@ const CustomerAuth: React.FC<CustomerAuthProps> = ({
     setIsLoginSubmitting(true);
     
     try {
+      console.log(`Attempting customer login for restaurant: ${restaurantSlug}`);
       const success = await customerLogin(loginEmail, loginPassword, restaurantSlug);
       
       if (success) {
         setOpen(false);
+        toast({
+          title: 'Login realizado',
+          description: 'Bem-vindo de volta!',
+        });
         if (onSuccess) onSuccess();
-        // In a real app, you might navigate to a customer dashboard or profile
       }
     } finally {
       setIsLoginSubmitting(false);
@@ -99,6 +103,7 @@ const CustomerAuth: React.FC<CustomerAuthProps> = ({
     setIsRegisterSubmitting(true);
     
     try {
+      console.log(`Attempting customer registration for restaurant: ${restaurantSlug}`);
       const success = await registerCustomer(
         registerName, 
         registerEmail, 
@@ -109,8 +114,11 @@ const CustomerAuth: React.FC<CustomerAuthProps> = ({
       
       if (success) {
         setOpen(false);
+        toast({
+          title: 'Cadastro realizado',
+          description: 'Bem-vindo ao ComandeJá!',
+        });
         if (onSuccess) onSuccess();
-        // In a real app, you might navigate to a customer dashboard or profile
       }
     } finally {
       setIsRegisterSubmitting(false);

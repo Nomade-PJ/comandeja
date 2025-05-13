@@ -18,20 +18,22 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onEdit,
   isAdmin = false 
 }) => {
-  const handleAddToCart = () => {
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering parent click handlers
     if (onAddToCart) {
       onAddToCart(product, 1);
     }
   };
   
-  const handleEdit = () => {
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering parent click handlers
     if (onEdit) {
       onEdit(product);
     }
   };
   
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-md">
+    <Card className="overflow-hidden transition-all hover:shadow-md h-full flex flex-col">
       <div className="relative h-48 bg-gray-100">
         {product.imageUrl ? (
           <img
@@ -52,7 +54,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         )}
       </div>
       
-      <CardContent className="p-4">
+      <CardContent className="p-4 flex-1 flex flex-col">
         <div className="flex justify-between items-start mb-2">
           <h3 className="font-semibold text-lg truncate">{product.name}</h3>
           <div className="font-bold text-primary">
@@ -60,7 +62,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </div>
         
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+        <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-grow">
           {product.description}
         </p>
         
@@ -79,7 +81,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             disabled={!product.available}
           >
             <ShoppingCart className="h-4 w-4" />
-            Adicionar ao Carrinho
+            Adicionar
           </Button>
         )}
       </CardContent>

@@ -27,7 +27,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRestaurant, Category, Product } from '@/contexts/RestaurantContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, ShoppingCart, Clock, MapPin, Check } from 'lucide-react';
+import { Search, ShoppingCart, Clock, MapPin, Check, Phone } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import ProductDetail from '@/components/ProductDetail';
 import CustomerAuth from '@/components/CustomerAuth';
@@ -61,16 +61,62 @@ const CustomerRestaurantView = () => {
   // Auth state
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   
+  // For demo purposes, use these mock data if there's no actual restaurant data available yet
+  const mockRestaurant = {
+    id: 'resto-demo',
+    name: restaurantSlug ? restaurantSlug.charAt(0).toUpperCase() + restaurantSlug.slice(1) : 'Demo Restaurant',
+    description: 'Deliciosos pratos para satisfazer seu paladar',
+    logo: 'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?q=80&w=500',
+    address: 'Av. Paulista, 1000, São Paulo',
+    phone: '+551144332211',
+    openingHours: 'Seg-Dom: 11h - 22h'
+  };
+
+  const mockCategories = [
+    { id: 'cat-1', name: 'Burgers' },
+    { id: 'cat-2', name: 'Pizzas' },
+    { id: 'cat-3', name: 'Bebidas' },
+    { id: 'cat-4', name: 'Sobremesas' }
+  ];
+
+  const mockProducts = [
+    {
+      id: 'prod-1',
+      name: 'Classic Burger',
+      description: 'Hambúrguer de carne bovina, alface, tomate, queijo e molho especial',
+      price: 12.99,
+      imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=500',
+      categoryId: 'cat-1',
+      available: true
+    },
+    {
+      id: 'prod-2',
+      name: 'Pizza Margherita',
+      description: 'Pizza tradicional italiana com molho de tomate, mussarela e manjericão',
+      price: 14.99,
+      imageUrl: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?q=80&w=500',
+      categoryId: 'cat-2',
+      available: true
+    }
+  ];
+  
   const { restaurant, categories, products } = useRestaurant();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   
   useEffect(() => {
+    if (restaurant === null) {
+      console.log("No restaurant data available, would load from API using slug:", restaurantSlug);
+      // In a real implementation, here you would fetch restaurant data from the database using the slug
+    }
+    
     if (categories.length > 0 && !selectedCategory) {
       setSelectedCategory(categories[0].id);
+    } else if (categories.length === 0 && mockCategories.length > 0) {
+      setSelectedCategory(mockCategories[0].id);
     }
-  }, [categories, selectedCategory]);
+  }, [restaurant, categories, selectedCategory, restaurantSlug]);
   
   // Calculate total items and amount
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -79,7 +125,11 @@ const CustomerRestaurantView = () => {
   const totalAmount = subtotal + deliveryFee;
   
   // Filter products by search and category
-  const filteredProducts = products.filter(product => {
+  const displayProducts = products.length > 0 ? products : mockProducts;
+  const displayCategories = categories.length > 0 ? categories : mockCategories;
+  const displayRestaurant = restaurant ? restaurant : mockRestaurant;
+  
+  const filteredProducts = displayProducts.filter(product => {
     const matchesSearch = searchQuery === '' || 
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -125,10 +175,6 @@ const CustomerRestaurantView = () => {
         )
       );
     }
-  };
-  
-  const handleClearCart = () => {
-    setCartItems([]);
   };
   
   const handleProductClick = (product: Product) => {
@@ -203,6 +249,8 @@ const CustomerRestaurantView = () => {
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // In a real app, here we would send the order to the restaurant via API
+      // The order would include the restaurant slug to identify which restaurant it belongs to
+      // The order would be saved in the database and shown in the restaurant's dashboard
       
       setIsOrderComplete(true);
       setCartItems([]);
@@ -232,34 +280,26 @@ const CustomerRestaurantView = () => {
     setIsOrderComplete(false);
     setIsCheckoutOpen(false);
   };
-  
-  if (!restaurant) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <p>Carregando informações do restaurante...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Restaurant Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-primary text-white border-b border-gray-200 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-3">
-              {restaurant.logo && (
+              {displayRestaurant.logo && (
                 <img
-                  src={restaurant.logo}
-                  alt={restaurant.name}
-                  className="w-12 h-12 rounded-full object-cover border"
+                  src={displayRestaurant.logo}
+                  alt={displayRestaurant.name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-white"
                 />
               )}
               <div>
-                <h1 className="text-xl md:text-2xl font-bold">{restaurant.name}</h1>
-                <div className="flex items-center text-sm text-gray-500 mt-1">
+                <h1 className="text-xl md:text-2xl font-bold">{displayRestaurant.name}</h1>
+                <div className="flex items-center text-sm text-white/80 mt-1">
                   <Clock className="w-4 h-4 mr-1" />
-                  <span>{restaurant.openingHours}</span>
+                  <span>{displayRestaurant.openingHours}</span>
                 </div>
               </div>
             </div>
@@ -270,11 +310,11 @@ const CustomerRestaurantView = () => {
                 onSuccess={handleAuthSuccess}
                 trigger={
                   user ? (
-                    <Button variant="ghost" className="text-sm">
+                    <Button variant="secondary" className="text-sm">
                       Olá, {user.name.split(' ')[0]}
                     </Button>
                   ) : (
-                    <Button variant="outline" size="sm">
+                    <Button variant="secondary" size="sm">
                       Entrar / Cadastrar
                     </Button>
                   )
@@ -282,7 +322,7 @@ const CustomerRestaurantView = () => {
               />
               
               <Button 
-                variant="outline" 
+                variant="secondary" 
                 className="flex items-center gap-2"
                 onClick={() => setIsCheckoutOpen(true)}
               >
@@ -299,9 +339,15 @@ const CustomerRestaurantView = () => {
       {/* Restaurant Info Banner */}
       <div className="bg-white border-b border-gray-200">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center text-sm text-gray-600">
-            <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
-            <span className="truncate">{restaurant.address}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center text-sm text-gray-600 mb-2 sm:mb-0">
+              <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span className="truncate">{displayRestaurant.address}</span>
+            </div>
+            <div className="flex items-center text-sm text-gray-600">
+              <Phone className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span>{displayRestaurant.phone}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -324,13 +370,13 @@ const CustomerRestaurantView = () => {
       {/* Menu Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs 
-          value={selectedCategory || categories[0]?.id} 
+          value={selectedCategory || displayCategories[0]?.id} 
           onValueChange={setSelectedCategory as any}
           className="w-full mb-6"
         >
           <ScrollArea className="w-full whitespace-nowrap pb-2">
             <TabsList className="h-12 inline-flex">
-              {categories.map(category => (
+              {displayCategories.map(category => (
                 <TabsTrigger key={category.id} value={category.id}>
                   {category.name}
                 </TabsTrigger>
@@ -338,10 +384,10 @@ const CustomerRestaurantView = () => {
             </TabsList>
           </ScrollArea>
 
-          {categories.map((category) => (
+          {displayCategories.map((category) => (
             <TabsContent key={category.id} value={category.id}>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {filteredProducts.map((product) => (
+                {filteredProducts.filter(p => p.categoryId === category.id).map((product) => (
                   <div 
                     key={product.id} 
                     onClick={() => handleProductClick(product)}
@@ -355,7 +401,7 @@ const CustomerRestaurantView = () => {
                 ))}
               </div>
               
-              {filteredProducts.length === 0 && (
+              {filteredProducts.filter(p => p.categoryId === category.id).length === 0 && (
                 <div className="text-center py-12">
                   <p className="text-gray-500">Nenhum produto encontrado nesta categoria.</p>
                 </div>
@@ -741,10 +787,10 @@ const CustomerRestaurantView = () => {
       <footer className="bg-gray-100 border-t border-gray-200 py-6 mt-12">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <h3 className="font-semibold mb-2">{restaurant.name}</h3>
-            <p className="text-gray-600 text-sm mb-4">{restaurant.description}</p>
+            <h3 className="font-semibold mb-2">{displayRestaurant.name}</h3>
+            <p className="text-gray-600 text-sm mb-4">{displayRestaurant.description}</p>
             <p className="text-gray-600 text-sm">
-              Powered by <span className="font-medium">ComandeJá</span>
+              Powered by <span className="font-medium text-primary">ComandeJá</span>
             </p>
           </div>
         </div>
