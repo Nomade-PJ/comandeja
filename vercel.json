@@ -13,13 +13,5 @@
   "builds": [
     { "src": "server.cjs", "use": "@vercel/node" },
     { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" }}
-  ],
-  "env": {
-    "VITE_DB_USER": "postgres",
-    "VITE_DB_HOST": "postgres-host.vercel-storage.com",
-    "VITE_DB_NAME": "ComandeJa_SaaS",
-    "VITE_DB_PASSWORD": "vercel-postgres-password",
-    "VITE_DB_PORT": "5432",
-    "NODE_ENV": "production"
-  }
+  ]
 } 
