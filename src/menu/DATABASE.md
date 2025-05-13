@@ -187,10 +187,15 @@ CREATE TABLE customers (
   email TEXT,
   phone TEXT NOT NULL,
   address TEXT,
+  latitude DECIMAL(10,8),
+  longitude DECIMAL(11,8),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   last_order_at TIMESTAMP WITH TIME ZONE,
   total_orders INTEGER DEFAULT 0,
   total_spent DECIMAL(10,2) DEFAULT 0,
+  password_hash TEXT,  -- Para login de clientes
+  reset_password_token TEXT,
+  reset_password_expires TIMESTAMP WITH TIME ZONE,
   UNIQUE(restaurant_id, phone)
 );
 
@@ -215,6 +220,10 @@ CREATE TABLE orders (
   payment_status TEXT DEFAULT 'pending',
   delivery_method TEXT NOT NULL,  -- 'delivery' ou 'pickup'
   delivery_address TEXT,
+  delivery_latitude DECIMAL(10,8),
+  delivery_longitude DECIMAL(11,8),
+  estimated_delivery_time TIMESTAMP WITH TIME ZONE,
+  delivery_driver_id UUID REFERENCES team_members(id),
   notes TEXT,
   scheduled_for TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -258,6 +267,39 @@ CREATE TABLE order_item_options (
   name TEXT NOT NULL,
   price DECIMAL(10,2) DEFAULT 0
 );
+```
+
+### order_status_history
+Histórico de alterações de status dos pedidos.
+
+```sql
+CREATE TABLE order_status_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  status TEXT NOT NULL,
+  notes TEXT,
+  created_by UUID,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_order_status_history_order ON order_status_history(order_id);
+```
+
+### order_tracking
+Rastreamento de pedidos em entrega.
+
+```sql
+CREATE TABLE order_tracking (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  latitude DECIMAL(10,8) NOT NULL,
+  longitude DECIMAL(11,8) NOT NULL,
+  status TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(order_id, created_at)
+);
+
+CREATE INDEX idx_order_tracking_order ON order_tracking(order_id);
 ```
 
 ### coupons
@@ -407,7 +449,7 @@ Notificações do sistema.
 ```sql
 CREATE TABLE notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  recipient_type TEXT NOT NULL,  -- 'restaurant', 'admin'
+  recipient_type TEXT NOT NULL,  -- 'restaurant', 'admin', 'customer'
   recipient_id UUID NOT NULL,
   title TEXT NOT NULL,
   message TEXT NOT NULL,
@@ -508,6 +550,13 @@ CREATE INDEX idx_recent_orders ON orders(restaurant_id, created_at DESC);
 -- Melhorar performance para busca de cupons válidos
 CREATE INDEX idx_valid_coupons ON coupons(restaurant_id, is_active)
 WHERE is_active = TRUE AND (expires_at IS NULL OR expires_at > NOW());
+
+-- Melhorar busca por localização geográfica
+CREATE INDEX idx_customers_location ON customers(latitude, longitude) 
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
+
+CREATE INDEX idx_orders_location ON orders(delivery_latitude, delivery_longitude) 
+WHERE delivery_latitude IS NOT NULL AND delivery_longitude IS NOT NULL;
 ```
 
 ## Políticas RLS (Row Level Security)
@@ -523,6 +572,7 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
 
 -- Política para usuários (restaurantes)
 CREATE POLICY restaurant_isolation_policy ON restaurants
@@ -550,6 +600,10 @@ CREATE POLICY coupon_isolation_policy ON coupons
 
 -- Política para avaliações
 CREATE POLICY review_isolation_policy ON reviews
+  USING (restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid()));
+
+-- Política para membros da equipe
+CREATE POLICY team_member_isolation_policy ON team_members
   USING (restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid()));
 ```
 

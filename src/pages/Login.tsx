@@ -14,18 +14,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LockKeyhole } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
-  const [isSendingReset, setIsSendingReset] = useState(false);
+  const [isForgotPasswordSubmitting, setIsForgotPasswordSubmitting] = useState(false);
+  const [forgotPasswordDialogOpen, setForgotPasswordDialogOpen] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   
-  const { login } = useAuth();
+  const { login, requestPasswordReset } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -47,9 +55,7 @@ const Login = () => {
       const success = await login(email, password);
       
       if (success) {
-        // Navigate to the restaurant's subdomain dashboard
-        const restaurantSlug = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-');
-        navigate(`/dashboard`);
+        navigate('/dashboard');
       }
     } finally {
       setIsSubmitting(false);
@@ -62,33 +68,22 @@ const Login = () => {
     if (!forgotPasswordEmail) {
       toast({
         title: 'Erro',
-        description: 'Por favor, informe seu email para redefinir a senha.',
+        description: 'Por favor, informe seu email.',
         variant: 'destructive',
       });
       return;
     }
     
-    setIsSendingReset(true);
+    setIsForgotPasswordSubmitting(true);
     
     try {
-      // In a real app, this would be an API call to PostgreSQL
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const success = await requestPasswordReset(forgotPasswordEmail);
       
-      toast({
-        title: 'Email enviado',
-        description: 'Verifique sua caixa de entrada para redefinir sua senha.',
-      });
-      
-      setForgotPasswordOpen(false);
-    } catch (error) {
-      console.error('Failed to send reset email', error);
-      toast({
-        title: 'Falha ao enviar email',
-        description: 'Não foi possível enviar o email de redefinição. Tente novamente mais tarde.',
-        variant: 'destructive',
-      });
+      if (success) {
+        setResetEmailSent(true);
+      }
     } finally {
-      setIsSendingReset(false);
+      setIsForgotPasswordSubmitting(false);
     }
   };
 
@@ -99,14 +94,14 @@ const Login = () => {
           <div className="flex justify-center items-center mb-2">
             <h1 className="text-3xl font-bold text-[#4E3B8D]">ComandeJá</h1>
           </div>
-          <p className="text-gray-500 mt-2">Bem-vindo de volta! Entre na sua conta.</p>
+          <p className="text-gray-500 mt-2">Faça login para acessar seu painel</p>
         </div>
         
         <Card>
           <CardHeader>
             <CardTitle>Login</CardTitle>
             <CardDescription>
-              Digite seu email e senha para acessar seu painel.
+              Entre com seu email e senha para acessar o painel
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
@@ -116,29 +111,84 @@ const Login = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
                   required
                 />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Senha</Label>
-                  <button 
-                    type="button"
-                    className="text-sm text-primary hover:underline"
-                    onClick={() => setForgotPasswordOpen(true)}
-                  >
-                    Esqueceu a senha?
-                  </button>
+                  <Dialog open={forgotPasswordDialogOpen} onOpenChange={setForgotPasswordDialogOpen}>
+                    <DialogTrigger asChild>
+                      <button 
+                        type="button"
+                        className="text-sm font-medium text-primary hover:underline"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setForgotPasswordEmail(email || '');
+                          setResetEmailSent(false);
+                        }}
+                      >
+                        Esqueceu a senha?
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Recuperar senha</DialogTitle>
+                        <DialogDescription>
+                          {!resetEmailSent ? (
+                            'Informe seu email para receber as instruções de recuperação de senha.'
+                          ) : (
+                            'Enviamos as instruções para recuperação de senha. Verifique seu email.'
+                          )}
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      {!resetEmailSent ? (
+                        <form onSubmit={handleForgotPassword} className="space-y-4 pt-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="reset-email">Email</Label>
+                            <Input
+                              id="reset-email"
+                              type="email"
+                              value={forgotPasswordEmail}
+                              onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                              placeholder="seu@email.com"
+                              required
+                            />
+                          </div>
+                          
+                          <DialogFooter>
+                            <Button 
+                              type="submit" 
+                              disabled={isForgotPasswordSubmitting}
+                              className="w-full"
+                            >
+                              {isForgotPasswordSubmitting ? 'Enviando...' : 'Enviar instruções'}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      ) : (
+                        <DialogFooter className="pt-4">
+                          <Button 
+                            className="w-full" 
+                            onClick={() => setForgotPasswordDialogOpen(false)}
+                          >
+                            Fechar
+                          </Button>
+                        </DialogFooter>
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 </div>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
                   required
                 />
               </div>
@@ -167,48 +217,6 @@ const Login = () => {
           </Link>
         </div>
       </div>
-
-      {/* Forgot Password Dialog */}
-      <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <LockKeyhole className="h-5 w-5" />
-              Recuperar Senha
-            </DialogTitle>
-            <DialogDescription>
-              Informe seu email para receber as instruções de recuperação de senha.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleForgotPassword}>
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label htmlFor="reset-email">Email</Label>
-                <Input 
-                  id="reset-email" 
-                  type="email" 
-                  value={forgotPasswordEmail}
-                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                  placeholder="seu@email.com" 
-                  required
-                />
-              </div>
-            </div>
-            <DialogFooter className="mt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setForgotPasswordOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSendingReset}>
-                {isSendingReset ? 'Enviando...' : 'Enviar Instruções'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

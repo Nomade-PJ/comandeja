@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
@@ -31,6 +31,8 @@ import AdminPlans from "./pages/admin/AdminPlans";
 import AdminSupport from "./pages/admin/AdminSupport";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminNotifications from "./pages/admin/AdminNotifications";
+import CustomerRestaurantView from "./pages/CustomerRestaurantView";
+import CustomerOrderTracking from "./pages/CustomerOrderTracking";
 
 const queryClient = new QueryClient();
 
@@ -47,7 +49,14 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/r/:restaurantId" element={<MenuPage />} />
+                
+                {/* Customer-facing restaurant routes */}
+                <Route path="/r/:restaurantSlug" element={<CustomerRestaurantView />} />
+                <Route path="/r/:restaurantSlug/pedido/:orderId" element={<CustomerOrderTracking />} />
+                <Route path="/r/:restaurantSlug/*" element={<NotFound />} />
+                
+                {/* Legacy route - redirect to new format */}
+                <Route path="/menu/:restaurantId" element={<MenuPage />} />
                 
                 {/* Admin Routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
