@@ -1,17 +1,31 @@
 {
+  "version": 2,
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
+  "regions": ["gru1"],
+  "functions": {
+    "api/**/*.js": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/server.cjs" }
+  ],
   "routes": [
     { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/server.cjs" }
   ],
   "env": {
     "VITE_DB_USER": "postgres",
     "VITE_DB_HOST": "postgres-host.vercel-storage.com",
     "VITE_DB_NAME": "ComandeJa_SaaS",
     "VITE_DB_PASSWORD": "vercel-postgres-password",
-    "VITE_DB_PORT": "5432"
+    "VITE_DB_PORT": "5432",
+    "NODE_ENV": "production"
   }
 } 

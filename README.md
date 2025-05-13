@@ -1,73 +1,103 @@
-# Welcome to your Lovable project
+# ComandeJá - Sistema de Gerenciamento de Restaurantes SaaS
 
-## Project info
+ComandeJá é uma aplicação web desenvolvida com React, TypeScript e Express, projetada para ajudar restaurantes a gerenciar pedidos, cardápios e clientes.
 
-**URL**: https://lovable.dev/projects/d839fd1e-d807-4574-9d1b-5790bb48d521
+## Requisitos
 
-## How can I edit this code?
+- Node.js 18+ 
+- PostgreSQL 12+
+- NPM ou Yarn
 
-There are several ways of editing your application.
+## Configuração do Banco de Dados
 
-**Use Lovable**
+1. Crie um banco de dados PostgreSQL chamado `ComandeJa_SaaS`
+2. Execute o script SQL fornecido no arquivo `database_setup.sql` para criar as tabelas necessárias
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/d839fd1e-d807-4574-9d1b-5790bb48d521) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+psql -U postgres -d ComandeJa_SaaS -f database_setup.sql
 ```
 
-**Edit a file directly in GitHub**
+## Instalação
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+# Instalar dependências
+npm install
 
-**Use GitHub Codespaces**
+# Configurar variáveis de ambiente
+# Crie um arquivo .env com as seguintes variáveis:
+VITE_DB_USER=postgres
+VITE_DB_HOST=localhost
+VITE_DB_NAME=ComandeJa_SaaS
+VITE_DB_PASSWORD=sua_senha
+VITE_DB_PORT=5432
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Execução Local
 
-## What technologies are used for this project?
+### Desenvolvimento (Front-end e Back-end separados)
 
-This project is built with:
+```bash
+# Iniciar o servidor de desenvolvimento front-end
+npm run dev
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Em outro terminal, iniciar o servidor back-end
+npm run start:cjs
+```
 
-## How can I deploy this project?
+### Produção (Build completo)
 
-Simply open [Lovable](https://lovable.dev/projects/d839fd1e-d807-4574-9d1b-5790bb48d521) and click on Share -> Publish.
+```bash
+# Gerar build de produção
+npm run build
 
-## Can I connect a custom domain to my Lovable project?
+# Iniciar servidor de produção
+npm run start:cjs
+```
 
-Yes, you can!
+## Testando a conexão com o banco de dados
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```bash
+npm run test:db
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Deploy na Vercel
+
+Este projeto está configurado para ser implantado na Vercel. Siga estes passos:
+
+1. Crie uma conta na Vercel e instale o CLI
+2. Configure o PostgreSQL na Vercel ou use uma instância externa
+3. Use o seguinte comando para deploy:
+
+```bash
+vercel --prod
+```
+
+## Problemas comuns e soluções
+
+### Erro de conexão com o PostgreSQL
+
+Se você encontrar erros de conexão com o banco de dados:
+
+1. Verifique se o PostgreSQL está rodando na porta correta
+2. Confirme que as credenciais estão corretas
+3. Para ambiente Windows, verifique se o firewall não está bloqueando a conexão
+
+### Problemas com ESM e CommonJS
+
+Este projeto usa ESM (ECMAScript Modules) para o front-end e CommonJS para o back-end. 
+Para executar o servidor, use o arquivo server.cjs com o comando:
+
+```bash
+npm run start:cjs
+```
+
+## Estrutura do Projeto
+
+- `/src`: Código-fonte do front-end React/TypeScript
+- `/server.cjs`: API de back-end Express com sintaxe CommonJS
+- `/server.js`: Versão ESM do servidor (para compatibilidade)
+- `/database_setup.sql`: Script de configuração do banco de dados
+
+## Licença
+
+ISC

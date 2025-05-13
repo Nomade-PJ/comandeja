@@ -1,20 +1,16 @@
-// Servidor Express simples para servir a aplicação React e fornecer API REST
-import express from 'express';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import pg from 'pg';
-import cors from 'cors';
-
-// Obtém o diretório atual
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Servidor Express que usa sintaxe CommonJS para compatibilidade
+const express = require('express');
+const path = require('path');
+const { Pool } = require('pg');
+const cors = require('cors');
+const crypto = require('crypto');
 
 // Cria o aplicativo Express
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Configuração do banco de dados PostgreSQL
-const pool = new pg.Pool({
+const pool = new Pool({
   user: process.env.VITE_DB_USER || 'postgres',
   host: process.env.VITE_DB_HOST || 'localhost',
   database: process.env.VITE_DB_NAME || 'ComandeJa_SaaS',
@@ -27,7 +23,7 @@ const pool = new pg.Pool({
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // API de teste de conexão com o banco de dados
 app.get('/api/test-connection', async (req, res) => {
@@ -53,7 +49,6 @@ app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     
     // Criamos o hash da senha
-    const crypto = await import('crypto');
     const passwordHash = crypto.createHash('sha256')
       .update(password)
       .digest('hex');
@@ -108,8 +103,15 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password, restaurantName } = req.body;
     
+    // Validação de dados
+    if (!name || !email || !password || !restaurantName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Todos os campos são obrigatórios'
+      });
+    }
+    
     // Criamos o hash da senha
-    const crypto = await import('crypto');
     const passwordHash = crypto.createHash('sha256')
       .update(password)
       .digest('hex');
@@ -230,7 +232,7 @@ app.post('/api/auth/register', async (req, res) => {
 // Rota para todas as solicitações não-API
 // Isso garante que o React Router funcione corretamente
 app.get('*', (req, res) => {
-  res.sendFile(join(__dirname, 'dist', 'index.html'));
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Inicia o servidor
