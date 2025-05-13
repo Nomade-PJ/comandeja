@@ -7,12 +7,13 @@ type User = {
   name: string;
   email: string;
   restaurantId?: string;
+  restaurantSlug?: string; // Added restaurant slug for subdomain
 };
 
 type AuthContextType = {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string, restaurantName: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 };
@@ -24,8 +25,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   
-  // LocalStorage references removed - in real implementation, this would check PostgreSQL
-
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
@@ -34,16 +33,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Wait 1 second to simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
 
+      // Create a restaurant slug based on email (in a real app, would be fetched from DB)
+      const restaurantSlug = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-');
+
       // Create a sample user
       const mockUser: User = {
         id: '1',
         name: 'Restaurant Owner',
         email,
-        restaurantId: 'resto-1'
+        restaurantId: 'resto-1',
+        restaurantSlug
       };
 
       setUser(mockUser);
-      // Removed localStorage.setItem
       
       toast({
         title: "Login successful",
@@ -64,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
+  const register = async (name: string, email: string, password: string, restaurantName: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       
@@ -72,16 +74,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Wait 1 second to simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
 
+      // Create a restaurant slug based on restaurant name
+      const restaurantSlug = restaurantName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
       // Create a new user
       const mockUser: User = {
         id: Date.now().toString(),
         name,
         email,
-        restaurantId: `resto-${Date.now()}`
+        restaurantId: `resto-${Date.now()}`,
+        restaurantSlug
       };
 
       setUser(mockUser);
-      // Removed localStorage.setItem
       
       toast({
         title: "Registration successful",
@@ -104,7 +109,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
-    // Removed localStorage.removeItem
     toast({
       title: "Logged out",
       description: "You have been logged out successfully.",

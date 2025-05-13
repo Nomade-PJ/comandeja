@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [restaurantName, setRestaurantName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { register } = useAuth();
@@ -28,10 +30,10 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !email || !password || !restaurantName) {
       toast({
         title: 'Erro',
-        description: 'Preencha todos os campos.',
+        description: 'Por favor, preencha todos os campos obrigatórios.',
         variant: 'destructive',
       });
       return;
@@ -49,14 +51,30 @@ const Register = () => {
     setIsSubmitting(true);
     
     try {
-      const success = await register(name, email, password);
+      const restaurantSlug = restaurantName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const success = await register(name, email, password, restaurantName);
       
       if (success) {
+        toast({
+          title: 'Cadastro realizado com sucesso!',
+          description: `Seu estabelecimento foi criado em comandeja.com/${restaurantSlug}`,
+        });
         navigate('/dashboard');
       }
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleRestaurantNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setRestaurantName(value);
+  };
+
+  // Generate slug preview
+  const getSlugPreview = () => {
+    if (!restaurantName) return '';
+    return restaurantName.toLowerCase().replace(/[^a-z0-9]/g, '-');
   };
 
   return (
@@ -66,58 +84,79 @@ const Register = () => {
           <div className="flex justify-center items-center mb-2">
             <h1 className="text-3xl font-bold text-[#4E3B8D]">ComandeJá</h1>
           </div>
-          <p className="text-gray-500 mt-2">Crie sua conta e comece a gerenciar seu restaurante.</p>
+          <p className="text-gray-500 mt-2">Crie sua conta e comece a receber pedidos online</p>
         </div>
         
         <Card>
           <CardHeader>
             <CardTitle>Cadastro</CardTitle>
             <CardDescription>
-              Insira suas informações para criar uma conta.
+              Preencha os dados abaixo para criar sua conta
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome do Restaurante</Label>
+                <Label htmlFor="name">Nome completo</Label>
                 <Input
                   id="name"
-                  placeholder="Nome do Seu Restaurante"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  placeholder="Seu nome completo"
                   required
                 />
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="restaurant-name">Nome do estabelecimento</Label>
+                <Input
+                  id="restaurant-name"
+                  value={restaurantName}
+                  onChange={handleRestaurantNameChange}
+                  placeholder="Nome do seu restaurante ou estabelecimento"
+                  required
+                />
+              </div>
+
+              {restaurantName && (
+                <div className="bg-muted px-3 py-2 rounded-md text-sm">
+                  <span className="text-muted-foreground">Seu estabelecimento estará disponível em: </span>
+                  <span className="font-medium">comandeja.com/{getSlugPreview()}</span>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
                   required
                 />
               </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="password">Senha</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
                   required
                 />
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <Label htmlFor="confirm-password">Confirmar senha</Label>
                 <Input
-                  id="confirmPassword"
+                  id="confirm-password"
                   type="password"
-                  placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
                   required
                 />
               </div>
@@ -128,12 +167,12 @@ const Register = () => {
                 className="w-full"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Criando conta...' : 'Criar Conta'}
+                {isSubmitting ? 'Cadastrando...' : 'Criar conta'}
               </Button>
               <p className="text-sm text-center text-gray-500">
                 Já tem uma conta?{' '}
                 <Link to="/login" className="text-primary hover:underline">
-                  Entrar
+                  Faça login
                 </Link>
               </p>
             </CardFooter>
