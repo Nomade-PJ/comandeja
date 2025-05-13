@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { 
   BarChart2, 
@@ -35,7 +36,8 @@ interface AdminDashboardLayoutProps {
 const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({ children, title }) => {
   const { adminUser, adminLogout } = useAdminAuth();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
 
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: <BarChart2 className="w-5 h-5" /> },
@@ -48,6 +50,9 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({ children, t
     { name: 'Configurações', path: '/admin/settings', icon: <Settings className="w-5 h-5" /> },
   ];
 
+  // For mobile, select only the main navigation items for the bottom bar
+  const mobileNavItems = navItems.slice(0, 5);
+
   const handleLogout = () => {
     adminLogout();
     navigate('/admin/login');
@@ -57,37 +62,45 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({ children, t
     setSidebarOpen(!sidebarOpen);
   };
 
+  const currentPath = window.location.pathname;
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Top navigation */}
       <header className="bg-primary text-white border-b border-primary-foreground shadow-md">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-white hover:bg-primary/80"
-              onClick={toggleSidebar}
-            >
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-            </Button>
+            {!isMobile && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-primary/80"
+                onClick={toggleSidebar}
+              >
+                {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+              </Button>
+            )}
             <div className="flex items-center">
               <Shield className="h-6 w-6 mr-2" />
               <div className="font-bold text-white text-xl">ComandeJá Admin</div>
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" className="text-white hover:bg-primary/80">
-              <Bell size={20} />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-primary/80">
-              <Mail size={20} />
-            </Button>
+            {!isMobile && (
+              <>
+                <Button variant="ghost" size="icon" className="text-white hover:bg-primary/80">
+                  <Bell size={20} />
+                </Button>
+                <Button variant="ghost" size="icon" className="text-white hover:bg-primary/80">
+                  <Mail size={20} />
+                </Button>
+              </>
+            )}
             {adminUser && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center space-x-2 text-white hover:bg-primary/80">
-                    <span className="font-medium">{adminUser.name}</span>
+                    <span className="font-medium">{isMobile ? '' : adminUser.name}</span>
                     <ChevronDown size={16} />
                   </Button>
                 </DropdownMenuTrigger>
@@ -108,40 +121,64 @@ const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({ children, t
       </header>
 
       <div className="flex flex-1">
-        {/* Sidebar */}
-        <aside className={`bg-slate-900 text-white ${sidebarOpen ? 'w-64' : 'w-0 md:w-16'} transition-all duration-300 ease-in-out overflow-hidden`}>
-          <nav className="p-4 space-y-2">
-            {navItems.map((item) => (
-              <button
-                key={item.name}
-                onClick={() => navigate(item.path)}
-                className={`w-full px-4 py-2 flex items-center space-x-3 rounded-md transition-colors 
-                  ${window.location.pathname === item.path
-                    ? 'bg-slate-800 text-white' 
-                    : 'hover:bg-slate-800 text-slate-300'
-                  }`}
-              >
-                {item.icon}
-                {sidebarOpen && <span>{item.name}</span>}
-              </button>
-            ))}
-          </nav>
-          
-          <div className="mt-8 p-4 border-t border-slate-800">
-            <div className="text-sm font-medium text-slate-400 mb-2">
-              {sidebarOpen ? 'ComandeJá SaaS v1.0' : 'v1.0'}
+        {/* Sidebar for Desktop */}
+        {!isMobile && (
+          <aside className={`bg-slate-900 text-white ${sidebarOpen ? 'w-64' : 'w-0 md:w-16'} transition-all duration-300 ease-in-out overflow-hidden`}>
+            <nav className="p-4 space-y-2">
+              {navItems.map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() => navigate(item.path)}
+                  className={`w-full px-4 py-2 flex items-center space-x-3 rounded-md transition-colors 
+                    ${currentPath === item.path
+                      ? 'bg-slate-800 text-white' 
+                      : 'hover:bg-slate-800 text-slate-300'
+                    }`}
+                >
+                  {item.icon}
+                  {sidebarOpen && <span>{item.name}</span>}
+                </button>
+              ))}
+            </nav>
+            
+            <div className="mt-8 p-4 border-t border-slate-800">
+              <div className="text-sm font-medium text-slate-400 mb-2">
+                {sidebarOpen ? 'ComandeJá SaaS v1.0' : 'v1.0'}
+              </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+        )}
 
         {/* Main content */}
-        <main className="flex-1 bg-slate-50">
+        <main className={`flex-1 bg-slate-50 ${isMobile ? 'pb-16' : ''}`}>
           <div className="p-6">
             <h1 className="text-2xl font-bold mb-6">{title}</h1>
             {children}
           </div>
         </main>
       </div>
+
+      {/* Bottom Navigation for Mobile */}
+      {isMobile && (
+        <div className="fixed bottom-0 left-0 right-0 bg-slate-900 shadow-lg z-10">
+          <div className="flex justify-between px-2">
+            {mobileNavItems.map((item) => (
+              <button
+                key={item.name}
+                onClick={() => navigate(item.path)}
+                className={`py-3 px-4 flex flex-col items-center justify-center ${
+                  currentPath === item.path
+                    ? 'text-white'
+                    : 'text-slate-400'
+                }`}
+              >
+                {item.icon}
+                <span className="text-xs mt-1">{item.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
