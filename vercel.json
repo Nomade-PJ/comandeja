@@ -5,16 +5,14 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "regions": ["gru1"],
-  "functions": {
-    "api/**/*.js": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  },
   "rewrites": [
     { "source": "/(assets/.+)", "destination": "/$1" },
-    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/api/(.*)", "destination": "/server.cjs" },
     { "source": "/(.*)", "destination": "/server.cjs" }
+  ],
+  "builds": [
+    { "src": "server.cjs", "use": "@vercel/node" },
+    { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" }}
   ],
   "env": {
     "VITE_DB_USER": "postgres",
