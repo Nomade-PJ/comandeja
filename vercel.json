@@ -12,13 +12,9 @@
     }
   },
   "rewrites": [
+    { "source": "/(assets/.+)", "destination": "/$1" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/server.cjs" }
-  ],
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/(.*)", "dest": "/server.cjs" }
   ],
   "env": {
     "VITE_DB_USER": "postgres",
