@@ -7,9 +7,9 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold text-[#4E3B8D]">ComandeJá</h1>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-0 flex justify-between items-center">
+          <div className="flex items-center -my-12">
+            <img src="/images/logo.png" alt="ComandeJá" className="h-40 w-auto" />
           </div>
           <div className="flex items-center space-x-4">
             <Link to="/login">
