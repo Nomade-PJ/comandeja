@@ -13,7 +13,7 @@ Este documento detalha os passos necessários para configurar corretamente o pro
 ```
 VITE_DB_USER=postgres
 VITE_DB_HOST=comandeja-saas.clag2oe2ce06.sa-east-1.rds.amazonaws.com
-VITE_DB_NAME=ComandeJa_SaaS
+VITE_DB_NAME=postgres
 VITE_DB_PASSWORD=Carlos2444h
 VITE_DB_PORT=5432
 NODE_ENV=production

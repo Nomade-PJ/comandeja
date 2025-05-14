@@ -5,7 +5,7 @@ const { Pool } = require('pg');
 const pool = new Pool({
   user: 'postgres',
   host: 'comandeja-saas.clag2oe2ce06.sa-east-1.rds.amazonaws.com',
-  database: 'ComandeJa_SaaS',
+  database: 'postgres', // Usando o banco postgres que é o padrão
   password: 'Carlos2444h',
   port: 5432,
   ssl: {
@@ -20,7 +20,7 @@ async function testConnection() {
     console.log('Tentando conectar ao PostgreSQL...');
     console.log(`Host: comandeja-saas.clag2oe2ce06.sa-east-1.rds.amazonaws.com:5432`);
     console.log('Usuário: postgres');
-    console.log('Database: ComandeJa_SaaS');
+    console.log('Database: postgres (banco padrão)');
     
     client = await pool.connect();
     console.log('✅ Conexão estabelecida com sucesso!');
@@ -35,6 +35,16 @@ async function testConnection() {
       const versionResult = await client.query('SELECT version()');
       console.log('Versão do PostgreSQL:', versionResult.rows[0].version);
       
+      // Lista todos os bancos de dados disponíveis
+      console.log('Tentando listar bancos de dados disponíveis:');
+      const dbListResult = await client.query(`
+        SELECT datname FROM pg_database WHERE datistemplate = false;
+      `);
+      console.log('Bancos de dados disponíveis:');
+      dbListResult.rows.forEach(row => {
+        console.log(`- ${row.datname}`);
+      });
+      
       // Verifica se a tabela users existe
       const tableResult = await client.query(`
         SELECT EXISTS (
@@ -45,10 +55,16 @@ async function testConnection() {
       `);
       console.log('Tabela users existe:', tableResult.rows[0].exists);
       
-      // Conta registros na tabela users
-      if (tableResult.rows[0].exists) {
-        const countResult = await client.query('SELECT COUNT(*) FROM users');
-        console.log('Número de usuários na tabela:', countResult.rows[0].count);
+      // Verifica se conseguimos criar o banco comandeja-saas
+      try {
+        console.log('Tentando verificar se podemos criar o banco comandeja-saas:');
+        await client.query(`
+          SELECT 'CREATE DATABASE "comandeja-saas"'
+          WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'comandeja-saas')
+        `);
+        console.log('O banco comandeja-saas pode ser criado se não existir');
+      } catch (dbError) {
+        console.log('Erro ao verificar criação do banco:', dbError.message);
       }
     } catch (e) {
       console.log('Erro ao consultar informações adicionais:', e.message);

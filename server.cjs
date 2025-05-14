@@ -23,7 +23,7 @@ console.log('Senha definida?', !!process.env.VITE_DB_PASSWORD);
 const dbConfig = {
   user: process.env.VITE_DB_USER || 'postgres',
   host: process.env.VITE_DB_HOST || 'comandeja-saas.clag2oe2ce06.sa-east-1.rds.amazonaws.com',
-  database: process.env.VITE_DB_NAME || 'ComandeJa_SaaS',
+  database: process.env.VITE_DB_NAME || 'postgres',
   password: process.env.VITE_DB_PASSWORD || 'Carlos2444h',
   port: parseInt(process.env.VITE_DB_PORT || '5432'),
   ssl: {
