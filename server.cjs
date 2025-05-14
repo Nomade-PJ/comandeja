@@ -10,12 +10,21 @@ const paymentController = require('./payment-controller.cjs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Log das variáveis de ambiente (sem mostrar a senha)
+console.log('Variáveis de ambiente para conexão:');
+console.log('VITE_DB_USER:', process.env.VITE_DB_USER);
+console.log('VITE_DB_HOST:', process.env.VITE_DB_HOST);
+console.log('VITE_DB_NAME:', process.env.VITE_DB_NAME);
+console.log('VITE_DB_PORT:', process.env.VITE_DB_PORT);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('Senha definida?', !!process.env.VITE_DB_PASSWORD);
+
 // Configuração do banco de dados PostgreSQL
 const pool = new Pool({
-  user: process.env.VITE_DB_USER || 'postgres',
-  host: process.env.VITE_DB_HOST || 'comandeja-saas.clag2oe2ce06.sa-east-1.rds.amazonaws.com',
-  database: process.env.VITE_DB_NAME || 'postgres',
-  password: process.env.VITE_DB_PASSWORD || 'Carlos2444h',
+  user: process.env.VITE_DB_USER,
+  host: process.env.VITE_DB_HOST,
+  database: process.env.VITE_DB_NAME,
+  password: process.env.VITE_DB_PASSWORD,
   port: parseInt(process.env.VITE_DB_PORT || '5432'),
   ssl: {
     rejectUnauthorized: false // Necessário para conexão RDS
@@ -26,6 +35,24 @@ const pool = new Pool({
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
+
+// API de diagnóstico de variáveis de ambiente (sem exibir a senha)
+app.get('/api/diagnostics', (req, res) => {
+  res.json({
+    environment: process.env.NODE_ENV,
+    database: {
+      host: process.env.VITE_DB_HOST,
+      database: process.env.VITE_DB_NAME,
+      user: process.env.VITE_DB_USER,
+      port: process.env.VITE_DB_PORT,
+      hasPassword: !!process.env.VITE_DB_PASSWORD
+    },
+    server: {
+      nodeVersion: process.version,
+      platform: process.platform
+    }
+  });
+});
 
 // API de teste de conexão com o banco de dados
 app.get('/api/test-connection', async (req, res) => {

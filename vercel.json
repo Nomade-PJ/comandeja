@@ -13,5 +13,8 @@
   "builds": [
     { "src": "server.cjs", "use": "@vercel/node" },
     { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" }}
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 } 

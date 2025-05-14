@@ -1,37 +1,64 @@
-# Configuração de Variáveis de Ambiente na Vercel
+# Configuração do ComandeJá na Vercel
 
-Para que o ComandeJá funcione corretamente na Vercel, é necessário configurar as variáveis de ambiente do banco de dados PostgreSQL.
+Este documento detalha os passos necessários para configurar corretamente o projeto na Vercel.
 
-## Opção 1: Usar o Vercel Postgres (Recomendado)
+## Configuração de Variáveis de Ambiente
 
-1. No dashboard da Vercel, vá para "Storage"
-2. Clique em "Create" e selecione "Postgres Database"
-3. Siga o processo de criação
-4. Após criar, a Vercel fornecerá as variáveis de ambiente automaticamente
+É **CRUCIAL** configurar as seguintes variáveis de ambiente EXATAMENTE como mostrado abaixo:
 
-## Opção 2: Usar seu próprio Banco de Dados PostgreSQL
-
-Se você preferir usar seu próprio banco de dados PostgreSQL, ele deve ser acessível pela internet. Siga estas etapas:
-
-1. No dashboard da Vercel, vá para seu projeto
-2. Clique em "Settings" > "Environment Variables"
+1. Vá ao painel da Vercel e selecione seu projeto ComandeJá
+2. Navegue até "Settings" > "Environment Variables"
 3. Adicione as seguintes variáveis:
 
 ```
-VITE_DB_USER=seu_usuario_postgres
-VITE_DB_HOST=endereco_do_seu_servidor_postgres
+VITE_DB_USER=postgres
+VITE_DB_HOST=comandeja-saas.clag2oe2ce06.sa-east-1.rds.amazonaws.com
 VITE_DB_NAME=ComandeJa_SaaS
-VITE_DB_PASSWORD=sua_senha_postgres
+VITE_DB_PASSWORD=Carlos2444h
 VITE_DB_PORT=5432
 NODE_ENV=production
 ```
 
-## Notas Importantes
+4. Clique em "Save" para salvar as variáveis
+5. **IMPORTANTE**: Você precisa fazer um novo deploy do projeto após salvar as variáveis de ambiente. Use a opção "Redeploy" no painel de controle.
 
-- O banco de dados deve estar acessível externamente
-- Para PostgreSQL hospedado em serviços como AWS RDS, Azure Database ou DigitalOcean, você precisa configurar as regras de firewall para permitir conexões da Vercel
-- Sempre use senhas fortes para seu banco de dados
+## Configuração do Banco de Dados RDS
 
-## Testando a Conexão
+Para que a aplicação na Vercel possa acessar o banco de dados RDS, verifique:
 
-Após configurar as variáveis de ambiente, redeploy seu projeto e teste o login. Se o login funcionar, a conexão está correta. Se não funcionar, verifique os logs de erro na Vercel para identificar o problema. 
+1. Acesse o console AWS e vá até o serviço RDS
+2. Selecione sua instância de banco de dados `comandeja-saas`
+3. Vá até a aba "Connectivity & security"
+4. Verifique o Security Group associado ao banco
+5. Edite as regras de entrada (Inbound rules) para permitir tráfego na porta 5432
+   - Adicione uma regra para IPv4: `0.0.0.0/0` para a porta 5432 (temporariamente para testes)
+   - Para produção, idealmente você limitaria aos IPs da Vercel
+
+## Verificando a Conexão e Diagnosticando Problemas
+
+Para verificar se a aplicação está sendo configurada corretamente:
+
+1. Após o deploy, acesse a rota `/api/diagnostics` no seu domínio da Vercel
+   - Por exemplo: `https://comandeja.vercel.app/api/diagnostics`
+   - Isso mostrará se as variáveis de ambiente estão sendo carregadas corretamente
+
+2. Se não conseguir acessar o app, verifique os logs:
+   - No dashboard da Vercel, vá em "Deployments" > clique no deploy mais recente
+   - Vá para a aba "Functions" e clique em "server.cjs"
+   - Veja os logs para identificar erros
+
+3. Se os logs mostrarem "cannot connect to database", verifique:
+   - Se as variáveis de ambiente estão exatamente como definidas acima
+   - Se o banco de dados RDS está acessível publicamente
+   - Se as regras de segurança do RDS permitem conexões externas
+
+## Corrigindo Problemas Comuns
+
+1. **Problema**: As variáveis de ambiente não estão sendo reconhecidas
+   **Solução**: Certifique-se de que foram salvas corretamente e que você fez redeploy
+
+2. **Problema**: Erro "password authentication failed"
+   **Solução**: Verifique se a senha está correta em VITE_DB_PASSWORD
+
+3. **Problema**: Erro "could not connect to server"
+   **Solução**: Verifique se o Security Group do RDS permite conexões da Vercel 
