@@ -30,11 +30,11 @@ function getEnvVar(key: string, defaultValue: string): string {
  * Configurações de banco de dados
  */
 export const DB_CONFIG = {
-  user: getEnvVar('DB_USER', 'postgres'),
-  host: getEnvVar('DB_HOST', 'localhost'),
-  database: getEnvVar('DB_NAME', 'ComandeJa_SaaS'),
-  password: getEnvVar('DB_PASSWORD', 'Carlos2444h'),
-  port: Number(getEnvVar('DB_PORT', '5432')),
+  user: getEnvVar('VITE_DB_USER', 'postgres'),
+  host: getEnvVar('VITE_DB_HOST', 'comandeja-saas.clag2oe2ce06.sa-east-1.rds.amazonaws.com'),
+  database: getEnvVar('VITE_DB_NAME', 'postgres'),
+  password: getEnvVar('VITE_DB_PASSWORD', 'Carlos2444h'),
+  port: Number(getEnvVar('VITE_DB_PORT', '5432')),
 };
 
 /**
