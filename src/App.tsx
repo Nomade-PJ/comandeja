@@ -17,6 +17,10 @@ import CouponsPage from "./pages/CouponsPage";
 import ReviewsPage from "./pages/ReviewsPage";
 import SettingsPage from "./pages/SettingsPage";
 import DatabaseInfo from "./pages/DatabaseInfo";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Terms from "./pages/Terms";
+import PlansPage from "./pages/PlansPage";
+import CheckoutPage from "./pages/CheckoutPage";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RestaurantProvider } from "./contexts/RestaurantContext";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
@@ -49,6 +53,10 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/plans" element={<PlansPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
                 
                 {/* Customer-facing restaurant routes */}
                 <Route path="/r/:restaurantSlug" element={<CustomerRestaurantView />} />

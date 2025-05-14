@@ -1,14 +1,15 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
+import { Eye, EyeOff, LoaderCircle, CheckCircle } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { Badge } from '@/components/ui/badge';
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -35,7 +36,46 @@ export default function Register() {
   const [slug, setSlug] = useState('');
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  
+  // Obter o plano selecionado do estado de navegação
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [planDetails, setPlanDetails] = useState<{ name: string, discount: number } | null>(null);
+  const [fromCheckout, setFromCheckout] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Verificar se há um plano selecionado no estado
+    const state = location.state as { 
+      selectedPlan?: string, 
+      fromCheckout?: boolean,
+      paymentMethod?: string 
+    } | null;
+    
+    if (state && state.selectedPlan) {
+      setSelectedPlan(state.selectedPlan);
+      
+      // Verificar se o usuário veio da página de checkout
+      if (state.fromCheckout) {
+        setFromCheckout(true);
+      }
+      
+      // Guardar o método de pagamento selecionado, se existir
+      if (state.paymentMethod) {
+        setPaymentMethod(state.paymentMethod);
+      }
+      
+      // Definir detalhes do plano com base no ID
+      const planInfo = {
+        'monthly': { name: 'Mensal', discount: 0 },
+        'six-months': { name: 'Semestral', discount: 15 },
+        'yearly': { name: 'Anual', discount: 25 }
+      };
+      
+      setPlanDetails(planInfo[state.selectedPlan as keyof typeof planInfo] || null);
+    }
+  }, [location.state]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -82,8 +122,26 @@ export default function Register() {
       );
 
       if (success) {
-        console.log('✅ Registro realizado com sucesso, redirecionando para o dashboard');
-        navigate('/dashboard');
+        console.log('✅ Registro realizado com sucesso');
+        
+        if (fromCheckout && selectedPlan) {
+          // Se o usuário veio do checkout, voltar para lá após o registro
+          toast({
+            title: "Registro concluído",
+            description: "Agora você pode finalizar a assinatura.",
+          });
+          
+          // Persistir o método de pagamento selecionado (se existir)
+          if (paymentMethod) {
+            sessionStorage.setItem('selectedPaymentMethod', paymentMethod);
+          }
+          
+          navigate('/checkout', { state: { selectedPlan } });
+        } else {
+          // Caso contrário, ir para o dashboard
+          console.log('✅ Redirecionando para o dashboard');
+          navigate('/dashboard');
+        }
       } else {
         console.log('❌ Falha no registro');
         // Mensagem de erro já exibida pelo AuthContext
@@ -99,20 +157,41 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center p-0">
       <div className="w-full max-w-md">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold">ComandeJá</h1>
-          <p className="text-muted-foreground mt-2">
-            Crie sua conta e comece a receber pedidos online
-          </p>
+        <div className="text-center -mb-4">
+          <img src="/images/logo.png" alt="ComandeJá" className="h-52 mx-auto -mb-4" />
         </div>
 
-        <div className="bg-card border rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-semibold mb-2">Cadastro</h2>
-          <p className="text-muted-foreground text-sm mb-6">
+        <div className="bg-card border rounded-lg shadow-sm p-4 mt-0">
+          <h2 className="text-xl font-semibold mb-1">Cadastro</h2>
+          <p className="text-muted-foreground text-sm mb-2">
             Preencha os dados abaixo para criar sua conta
           </p>
+          
+          {selectedPlan && planDetails && (
+            <div className="bg-purple-50 border border-purple-200 rounded-md p-3 mb-4 flex items-start">
+              <CheckCircle className="h-5 w-5 text-purple-600 mr-2 flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="font-medium text-purple-800">
+                  Plano {planDetails.name} selecionado
+                  {planDetails.discount > 0 && (
+                    <Badge className="ml-2 bg-green-500">-{planDetails.discount}%</Badge>
+                  )}
+                </div>
+                <p className="text-sm text-purple-700">
+                  {selectedPlan === 'monthly' 
+                    ? 'Cobrado mensalmente' 
+                    : selectedPlan === 'six-months'
+                      ? 'Cobrança semestral com 15% de desconto'
+                      : 'Cobrança anual com 25% de desconto'}
+                </p>
+                <p className="text-xs text-purple-600 mt-1">
+                  Você poderá alterar seu plano depois no painel administrativo
+                </p>
+              </div>
+            </div>
+          )}
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

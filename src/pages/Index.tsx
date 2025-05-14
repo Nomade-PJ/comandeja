@@ -1,7 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Shield } from 'lucide-react';
+import { Shield, User, Menu as MenuIcon } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Index = () => {
   return (
@@ -11,13 +19,41 @@ const Index = () => {
           <div className="flex items-center -my-12">
             <img src="/images/logo.png" alt="ComandeJá" className="h-40 w-auto" />
           </div>
-          <div className="flex items-center space-x-4">
-            <Link to="/login">
-              <Button variant="outline">Login</Button>
-            </Link>
-            <Link to="/register">
-              <Button>Criar Conta</Button>
-            </Link>
+          <div className="flex items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <MenuIcon className="h-6 w-6" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Menu</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/login" className="w-full flex items-center cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Login</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/plans" className="w-full flex items-center cursor-pointer">
+                    <Shield className="mr-2 h-4 w-4" />
+                    <span>Criar Conta</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/privacy-policy" className="w-full cursor-pointer">
+                    Política de Privacidade
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/terms" className="w-full cursor-pointer">
+                    Termos de Uso
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
@@ -26,10 +62,10 @@ const Index = () => {
         <section className="bg-gradient-to-b from-[#4E3B8D] to-[#6B50B5] text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
             <h2 className="text-4xl font-bold mb-6">Gerencie seu Restaurante com Facilidade</h2>
-            <p className="text-xl max-w-3xl mx-auto mb-8">
-              Aumente suas vendas e tenha o controle completo do seu estabelecimento com nossa plataforma completa e intuitiva.
+            <p className="text-xl max-w-4xl mx-auto mb-8">
+              Aumente suas vendas e tenha o controle completo do seu estabelecimento com nossa plataforma completa e intuitiva. Para Restaurantes, Pizzarias e Estabelecimentos Online e Físicos de Todo o Brasil.
             </p>
-            <Link to="/register">
+            <Link to="/plans">
               <Button size="lg" className="bg-white text-[#4E3B8D] hover:bg-gray-100">
                 Experimente Gratuitamente
               </Button>
@@ -43,15 +79,15 @@ const Index = () => {
             <h2 className="text-3xl font-bold text-center mb-12">Recursos Poderosos</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Feature cards */}
-              <div className="bg-white p-6 rounded-lg shadow-md">
+              <div className="bg-white p-6 rounded-lg shadow-md text-center">
                 <h3 className="text-xl font-semibold mb-3">Gestão de Pedidos</h3>
                 <p className="text-gray-600">Controle todos os pedidos em tempo real, desde o recebimento até a entrega.</p>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow-md">
+              <div className="bg-white p-6 rounded-lg shadow-md text-center">
                 <h3 className="text-xl font-semibold mb-3">Cardápio Digital</h3>
                 <p className="text-gray-600">Crie um cardápio digital atraente e personalizável com QR Code.</p>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow-md">
+              <div className="bg-white p-6 rounded-lg shadow-md text-center">
                 <h3 className="text-xl font-semibold mb-3">Relatórios Detalhados</h3>
                 <p className="text-gray-600">Visualize dados importantes e tome decisões baseadas em informações precisas.</p>
               </div>

@@ -4,6 +4,7 @@ const path = require('path');
 const { Pool } = require('pg');
 const cors = require('cors');
 const crypto = require('crypto');
+const paymentController = require('./payment-controller.cjs');
 
 // Cria o aplicativo Express
 const app = express();
@@ -280,6 +281,278 @@ app.post('/api/admin/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro no login:', error);
+    res.status(500).json({
+      success: false,
+      message: `Erro interno: ${error.message}`
+    });
+  }
+});
+
+// API de pagamentos
+app.post('/api/payments/card', async (req, res) => {
+  try {
+    const paymentData = req.body;
+    
+    // Validação básica dos dados
+    if (!paymentData.amount || !paymentData.cardToken || !paymentData.paymentMethodId || 
+        !paymentData.email || !paymentData.userId || !paymentData.restaurantId || !paymentData.planId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Dados de pagamento incompletos'
+      });
+    }
+    
+    const result = await paymentController.createCardPayment(paymentData);
+    
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Erro ao processar pagamento com cartão:', error);
+    res.status(500).json({
+      success: false,
+      message: `Erro interno: ${error.message}`
+    });
+  }
+});
+
+app.post('/api/payments/pix', async (req, res) => {
+  try {
+    const paymentData = req.body;
+    
+    // Validação básica dos dados
+    if (!paymentData.amount || !paymentData.email || !paymentData.userId || 
+        !paymentData.restaurantId || !paymentData.planId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Dados de pagamento incompletos'
+      });
+    }
+    
+    const result = await paymentController.createPixPayment(paymentData);
+    
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Erro ao processar pagamento com PIX:', error);
+    res.status(500).json({
+      success: false,
+      message: `Erro interno: ${error.message}`
+    });
+  }
+});
+
+app.get('/api/payments/pix/status/:transactionId', async (req, res) => {
+  try {
+    const transactionId = req.params.transactionId;
+    
+    if (!transactionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID da transação é obrigatório'
+      });
+    }
+    
+    const result = await paymentController.checkPixPaymentStatus(transactionId);
+    
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Erro ao verificar status do pagamento PIX:', error);
+    res.status(500).json({
+      success: false,
+      message: `Erro interno: ${error.message}`
+    });
+  }
+});
+
+app.post('/api/payment-methods', async (req, res) => {
+  try {
+    const methodData = req.body;
+    
+    // Validação básica dos dados
+    if (!methodData.userId || !methodData.restaurantId || !methodData.paymentType) {
+      return res.status(400).json({
+        success: false,
+        message: 'Dados do método de pagamento incompletos'
+      });
+    }
+    
+    // Validação específica para tipo de pagamento
+    if (methodData.paymentType.includes('card') && 
+        (!methodData.cardLastFour || !methodData.cardBrand || !methodData.cardExpiryMonth || !methodData.cardExpiryYear)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Dados do cartão incompletos'
+      });
+    }
+    
+    if (methodData.paymentType === 'pix' && (!methodData.pixKeyType || !methodData.pixKey)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Dados do PIX incompletos'
+      });
+    }
+    
+    const result = await paymentController.savePaymentMethod(methodData);
+    
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Erro ao salvar método de pagamento:', error);
+    res.status(500).json({
+      success: false,
+      message: `Erro interno: ${error.message}`
+    });
+  }
+});
+
+app.get('/api/payment-methods/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID do usuário é obrigatório'
+      });
+    }
+    
+    const result = await pool.query(
+      `SELECT 
+        id,
+        payment_type,
+        is_default,
+        card_last_four,
+        card_brand,
+        card_holder_name,
+        card_expiry_month,
+        card_expiry_year,
+        pix_key_type,
+        pix_key,
+        created_at
+      FROM payment_methods
+      WHERE user_id = $1 AND is_active = true
+      ORDER BY is_default DESC, created_at DESC`,
+      [userId]
+    );
+    
+    res.json({
+      success: true,
+      paymentMethods: result.rows
+    });
+  } catch (error) {
+    console.error('Erro ao buscar métodos de pagamento:', error);
+    res.status(500).json({
+      success: false,
+      message: `Erro interno: ${error.message}`
+    });
+  }
+});
+
+// API para obter informações do período de teste
+app.get('/api/trial-periods/:restaurantId', async (req, res) => {
+  try {
+    const restaurantId = req.params.restaurantId;
+    
+    if (!restaurantId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID do restaurante é obrigatório'
+      });
+    }
+    
+    const result = await pool.query(
+      `SELECT 
+        id, 
+        restaurant_id, 
+        plan_id, 
+        start_date, 
+        end_date, 
+        status,
+        converted_to_subscription
+      FROM trial_periods 
+      WHERE restaurant_id = $1 AND status = 'active'
+      LIMIT 1`,
+      [restaurantId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.json({
+        success: true,
+        trialPeriod: null
+      });
+    }
+    
+    res.json({
+      success: true,
+      trialPeriod: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Erro ao buscar período de teste:', error);
+    res.status(500).json({
+      success: false,
+      message: `Erro interno: ${error.message}`
+    });
+  }
+});
+
+// API para obter assinatura atual do restaurante
+app.get('/api/subscriptions/restaurant/:restaurantId', async (req, res) => {
+  try {
+    const restaurantId = req.params.restaurantId;
+    
+    if (!restaurantId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID do restaurante é obrigatório'
+      });
+    }
+    
+    const result = await pool.query(
+      `SELECT 
+        id, 
+        restaurant_id, 
+        plan_id, 
+        status, 
+        current_period_start,
+        current_period_end,
+        contracted_price,
+        billing_cycle,
+        next_billing_date,
+        created_at,
+        auto_renew
+      FROM subscriptions 
+      WHERE restaurant_id = $1 AND status = 'active'
+      ORDER BY created_at DESC
+      LIMIT 1`,
+      [restaurantId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.json({
+        success: true,
+        subscription: null
+      });
+    }
+    
+    res.json({
+      success: true,
+      subscription: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Erro ao buscar assinatura:', error);
     res.status(500).json({
       success: false,
       message: `Erro interno: ${error.message}`

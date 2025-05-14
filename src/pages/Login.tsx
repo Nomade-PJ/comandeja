@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -88,17 +87,14 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-0">
       <div className="w-full max-w-md">
-        <div className="text-center mb-6">
-          <div className="flex justify-center items-center mb-2">
-            <h1 className="text-3xl font-bold text-[#4E3B8D]">ComandeJá</h1>
-          </div>
-          <p className="text-gray-500 mt-2">Faça login para acessar seu painel</p>
+        <div className="text-center -mb-4">
+          <img src="/images/logo.png" alt="ComandeJá" className="h-52 mx-auto -mb-4" />
         </div>
         
-        <Card>
-          <CardHeader>
+        <Card className="mt-0">
+          <CardHeader className="pb-2 pt-3">
             <CardTitle>Login</CardTitle>
             <CardDescription>
               Entre com seu email e senha para acessar o painel
