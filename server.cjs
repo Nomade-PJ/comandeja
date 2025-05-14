@@ -19,16 +19,34 @@ console.log('VITE_DB_PORT:', process.env.VITE_DB_PORT);
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('Senha definida?', !!process.env.VITE_DB_PASSWORD);
 
-// Configuração do banco de dados PostgreSQL
-const pool = new Pool({
-  user: process.env.VITE_DB_USER,
-  host: process.env.VITE_DB_HOST,
-  database: process.env.VITE_DB_NAME,
-  password: process.env.VITE_DB_PASSWORD,
+// Configuração do banco de dados PostgreSQL - com fallback para valores padrão em caso de falha
+const dbConfig = {
+  user: process.env.VITE_DB_USER || 'postgres',
+  host: process.env.VITE_DB_HOST || 'comandeja-saas.clag2oe2ce06.sa-east-1.rds.amazonaws.com',
+  database: process.env.VITE_DB_NAME || 'ComandeJa_SaaS',
+  password: process.env.VITE_DB_PASSWORD || 'Carlos2444h',
   port: parseInt(process.env.VITE_DB_PORT || '5432'),
   ssl: {
     rejectUnauthorized: false // Necessário para conexão RDS
-  }
+  },
+  // Aumentando timeout para debug
+  connectionTimeoutMillis: 10000,
+  query_timeout: 10000
+};
+
+console.log('Configuração DB final (sem senha):', {
+  user: dbConfig.user,
+  host: dbConfig.host,
+  database: dbConfig.database,
+  port: dbConfig.port,
+  ssl: dbConfig.ssl
+});
+
+const pool = new Pool(dbConfig);
+
+// Evento para monitorar erros de conexão
+pool.on('error', (err) => {
+  console.error('Erro inesperado no pool de conexão:', err);
 });
 
 // Middleware
@@ -41,23 +59,32 @@ app.get('/api/diagnostics', (req, res) => {
   res.json({
     environment: process.env.NODE_ENV,
     database: {
-      host: process.env.VITE_DB_HOST,
-      database: process.env.VITE_DB_NAME,
-      user: process.env.VITE_DB_USER,
-      port: process.env.VITE_DB_PORT,
-      hasPassword: !!process.env.VITE_DB_PASSWORD
+      host: process.env.VITE_DB_HOST || dbConfig.host,
+      database: process.env.VITE_DB_NAME || dbConfig.database,
+      user: process.env.VITE_DB_USER || dbConfig.user,
+      port: process.env.VITE_DB_PORT || dbConfig.port,
+      hasPassword: !!process.env.VITE_DB_PASSWORD,
+      usingSSL: !!dbConfig.ssl
     },
     server: {
       nodeVersion: process.version,
-      platform: process.platform
+      platform: process.platform,
+      memoryUsage: process.memoryUsage()
     }
   });
 });
 
 // API de teste de conexão com o banco de dados
 app.get('/api/test-connection', async (req, res) => {
+  let client;
   try {
-    const result = await pool.query('SELECT NOW()');
+    console.log('Tentando conectar ao PostgreSQL...');
+    client = await pool.connect();
+    console.log('Conexão obtida, executando query...');
+    
+    const result = await client.query('SELECT NOW()');
+    console.log('Query executada com sucesso');
+    
     res.json({
       success: true,
       timestamp: result.rows[0].now,
@@ -67,8 +94,15 @@ app.get('/api/test-connection', async (req, res) => {
     console.error('Erro ao conectar ao PostgreSQL:', error);
     res.status(500).json({
       success: false,
-      message: `Erro ao conectar ao PostgreSQL: ${error.message}`
+      message: `Erro ao conectar ao PostgreSQL: ${error.message}`,
+      errorCode: error.code,
+      errorDetail: error.detail,
+      stack: error.stack
     });
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 });
 
