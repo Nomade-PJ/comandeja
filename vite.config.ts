@@ -26,11 +26,12 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    exclude: ['pg'], // Excluir pg das dependências otimizadas
+    include: ['pg']
   },
   build: {
     commonjsOptions: {
-      esmExternals: true, 
+      include: [/node_modules/],
+      transformMixedEsModules: true
     },
   },
 }));

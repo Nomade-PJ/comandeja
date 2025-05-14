@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -14,16 +13,32 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
-import { Shield } from 'lucide-react';
+import { Shield, Lock } from 'lucide-react';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [accessPassword, setAccessPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
   
   const { adminLogin } = useAdminAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const handleAccessSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (accessPassword === 'josecarlos@24h') {
+      setHasAccess(true);
+    } else {
+      toast({
+        title: 'Acesso Negado',
+        description: 'Senha de acesso incorreta.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +65,54 @@ const AdminLogin = () => {
     }
   };
 
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-6">
+            <div className="flex justify-center items-center mb-2">
+              <Lock className="h-10 w-10 text-primary mr-2" />
+              <h1 className="text-3xl font-bold text-primary">Área Restrita</h1>
+            </div>
+            <p className="text-gray-500 mt-2">Digite a senha de acesso para continuar</p>
+          </div>
+          
+          <Card>
+            <form onSubmit={handleAccessSubmit}>
+              <CardContent className="space-y-4 pt-6">
+                <div className="space-y-2">
+                  <Label htmlFor="accessPassword">Senha de Acesso</Label>
+                  <Input
+                    id="accessPassword"
+                    type="password"
+                    placeholder="••••••••••"
+                    value={accessPassword}
+                    onChange={(e) => setAccessPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  type="submit"
+                  className="w-full"
+                >
+                  Verificar Acesso
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+          
+          <div className="text-center mt-8">
+            <a href="/" className="text-gray-500 hover:text-gray-700 text-sm">
+              ← Voltar para home
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 p-4">
       <div className="w-full max-w-md">
@@ -75,7 +138,7 @@ const AdminLogin = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@comandeja.com"
+                  placeholder="Email/Admin"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

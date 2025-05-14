@@ -37,16 +37,6 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Adding Admin Link */}
-        <section className="py-12 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <Link to="/admin/login" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-800">
-              <Shield className="h-4 w-4 mr-1" />
-              Acesso Administrativo
-            </Link>
-          </div>
-        </section>
-
         {/* Rest of your landing page content */}
         <section className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

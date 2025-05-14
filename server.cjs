@@ -44,6 +44,21 @@ app.get('/api/test-connection', async (req, res) => {
   }
 });
 
+// API para executar queries
+app.post('/api/query', async (req, res) => {
+  try {
+    const { text, params } = req.body;
+    const result = await pool.query(text, params);
+    res.json(result);
+  } catch (error) {
+    console.error('Erro ao executar query:', error);
+    res.status(500).json({
+      success: false,
+      message: `Erro ao executar query: ${error.message}`
+    });
+  }
+});
+
 // API de autenticação
 app.post('/api/auth/login', async (req, res) => {
   try {
@@ -230,6 +245,48 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
+// API de autenticação administrativa
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Criamos o hash da senha
+    const passwordHash = crypto.createHash('sha256')
+      .update(password)
+      .digest('hex');
+    
+    // Verificamos o usuário no banco
+    const result = await pool.query(
+      'SELECT id, email, name, role FROM admin_users WHERE email = $1 AND password_hash = $2',
+      [email, passwordHash]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Credenciais inválidas'
+      });
+    }
+
+    // Atualiza a data do último login
+    await pool.query(
+      'UPDATE admin_users SET last_login = NOW() WHERE id = $1',
+      [result.rows[0].id]
+    );
+
+    res.json({
+      success: true,
+      user: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Erro no login:', error);
+    res.status(500).json({
+      success: false,
+      message: `Erro interno: ${error.message}`
+    });
+  }
+});
+
 // Rota para todas as solicitações não-API
 // Isso garante que o React Router funcione corretamente
 app.get('*', (req, res) => {
@@ -238,6 +295,6 @@ app.get('*', (req, res) => {
 
 // Inicia o servidor
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`http://localhost:${PORT}`);
 }); 

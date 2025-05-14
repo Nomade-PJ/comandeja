@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 
@@ -19,50 +18,55 @@ type AdminAuthContextType = {
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
+export const useAdminAuth = () => {
+  const context = useContext(AdminAuthContext);
+  if (!context) {
+    throw new Error('useAdminAuth must be used within an AdminAuthProvider');
+  }
+  return context;
+};
+
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [isAdminLoading, setIsAdminLoading] = useState(false);
   const { toast } = useToast();
-  
-  // LocalStorage has been removed. In a real implementation, this would check with PostgreSQL
 
   const adminLogin = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsAdminLoading(true);
       
-      // In a real app, this would validate against PostgreSQL database
-      // For now we'll hardcode the admin credentials
-      if (email === 'admin@comandeja.com' && password === 'comandeja@24h') {
-        const adminUser: AdminUser = {
-          id: 'admin-1',
-          name: 'Administrador',
-          email: 'admin@comandeja.com',
-          role: 'admin'
-        };
+      const response = await fetch('http://localhost:3000/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-        setAdminUser(adminUser);
-        // Removed localStorage.setItem
-        
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
         toast({
-          title: "Login bem-sucedido",
-          description: "Bem-vindo ao painel administrativo do ComandeJá!",
-        });
-        
-        return true;
-      } else {
-        toast({
-          title: "Falha no login",
-          description: "Credenciais inválidas. Por favor, tente novamente.",
+          title: "Login falhou",
+          description: data.message || "Credenciais inválidas",
           variant: "destructive"
         });
-        
         return false;
       }
-    } catch (error) {
-      console.error('Admin login failed', error);
+
+      setAdminUser(data.user);
+      
       toast({
-        title: "Falha no login",
-        description: "Ocorreu um erro ao tentar fazer login. Por favor, tente novamente mais tarde.",
+        title: "Login bem-sucedido",
+        description: "Bem-vindo ao painel administrativo!",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Login falhou:', error);
+      toast({
+        title: "Login falhou",
+        description: "Ocorreu um erro ao tentar fazer login",
         variant: "destructive"
       });
       return false;
@@ -75,28 +79,49 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       setIsAdminLoading(true);
       
-      // Verify current password is correct
-      if (currentPassword !== 'comandeja@24h') {
+      if (!adminUser) {
         toast({
           title: "Falha na atualização",
-          description: "Senha atual incorreta.",
+          description: "Usuário não está logado",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      const response = await fetch('http://localhost:3000/api/admin/update-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email: adminUser.email,
+          currentPassword,
+          newPassword
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        toast({
+          title: "Falha na atualização",
+          description: data.message || "Não foi possível atualizar a senha",
           variant: "destructive"
         });
         return false;
       }
       
-      // In a real app, this would update the password in PostgreSQL
       toast({
         title: "Senha atualizada",
-        description: "Sua senha foi atualizada com sucesso.",
+        description: "Sua senha foi atualizada com sucesso",
       });
       
       return true;
     } catch (error) {
-      console.error('Password update failed', error);
+      console.error('Password update failed:', error);
       toast({
         title: "Falha na atualização",
-        description: "Ocorreu um erro ao tentar atualizar a senha.",
+        description: "Ocorreu um erro ao tentar atualizar a senha",
         variant: "destructive"
       });
       return false;
@@ -107,10 +132,9 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const adminLogout = () => {
     setAdminUser(null);
-    // Removed localStorage.removeItem
     toast({
       title: "Logout realizado",
-      description: "Você saiu do painel administrativo.",
+      description: "Você saiu do painel administrativo",
     });
   };
 
@@ -125,12 +149,4 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       {children}
     </AdminAuthContext.Provider>
   );
-};
-
-export const useAdminAuth = () => {
-  const context = useContext(AdminAuthContext);
-  if (context === undefined) {
-    throw new Error('useAdminAuth must be used within an AdminAuthProvider');
-  }
-  return context;
 };
