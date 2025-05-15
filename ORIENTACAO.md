@@ -9,7 +9,7 @@
 - **Porta:** 5432
 - **Nome do Banco:** ComandeJa_SaaS
 - **Usuário:** postgres
-- **Senha:** comandeja@24h
+- **Senha:** Carlos2444h
 
 ### Estrutura do Banco de Dados
 O banco de dados possui as seguintes tabelas principais:
