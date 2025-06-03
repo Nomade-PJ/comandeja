@@ -6,6 +6,33 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Retrieves the current restaurant ID from the URL or session storage
+ * @returns The restaurant ID or null if not found
+ */
+export function getCurrentRestaurant(): string | null {
+  // Primeiro tenta obter da URL (formato: /r/restaurante-slug)
+  const path = window.location.pathname;
+  const match = path.match(/\/r\/([^\/]+)/);
+  
+  if (match && match[1]) {
+    return match[1]; // Retorna o slug do restaurante
+  }
+  
+  // Se não encontrou na URL, tenta obter do armazenamento local
+  const storedRestaurant = localStorage.getItem('currentRestaurant');
+  if (storedRestaurant) {
+    try {
+      const restaurantData = JSON.parse(storedRestaurant);
+      return restaurantData.id || null;
+    } catch (error) {
+      console.error('Erro ao parsear dados do restaurante:', error);
+    }
+  }
+  
+  return null;
+}
+
+/**
  * Validates a Brazilian CPF number (Cadastro de Pessoas Físicas)
  * @param cpf CPF number (with or without formatting)
  * @returns boolean indicating if the CPF is valid

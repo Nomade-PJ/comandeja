@@ -528,110 +528,99 @@ export default function Register() {
     // Obter todos os valores do formulário para garantir que temos os dados completos
     const formData = form.getValues();
     
-    // Combinar os campos de endereço para compatibilidade com o backend atual
+    // Verify if we have all the necessary data
+    if (!formData.name || !formData.email || !formData.password || !formData.restaurantName) {
+      toast({
+        title: "Dados incompletos",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive",
+      });
+      setCurrentStep(1); // Voltar para a primeira etapa
+      return;
+    }
+    
+    // Salvar todos os dados de registro no sessionStorage para uso posterior
+    sessionStorage.setItem('registration_restaurant_name', formData.restaurantName);
+    sessionStorage.setItem('registration_document_type', formData.documentType);
+    sessionStorage.setItem('registration_document_number', formData.documentNumber);
+    sessionStorage.setItem('registration_is_online', formData.isOnlineEstablishment ? 'true' : 'false');
+    
+    // Salvar o slug gerado
+    const generatedSlug = generateSlug(formData.restaurantName);
+    sessionStorage.setItem('registration_restaurant_slug', generatedSlug);
+    
+    // Salvar campos de endereço separados
+    if (!formData.isOnlineEstablishment) {
+      sessionStorage.setItem('registration_street', formData.street || '');
+      sessionStorage.setItem('registration_number', formData.number || '');
+      sessionStorage.setItem('registration_neighborhood', formData.neighborhood || '');
+      sessionStorage.setItem('registration_city', formData.city || '');
+      sessionStorage.setItem('registration_state', formData.state || '');
+      sessionStorage.setItem('registration_postal_code', formData.postalCode || '');
+    } else {
+      sessionStorage.setItem('registration_online_address', formData.onlineAddress || '');
+    }
+    
+    // Salvar endereço completo formatado
     let fullAddress = '';
     if (formData.isOnlineEstablishment) {
       fullAddress = formData.onlineAddress || 'Estabelecimento online';
+      sessionStorage.setItem('registration_address', fullAddress);
     } else {
-      fullAddress = `${formData.street || ''}, ${formData.number || ''}, ${formData.neighborhood || ''}, ${formData.city || ''}, ${formData.state || ''}, ${formData.postalCode || ''}`.replace(/,\s*,/g, ',').replace(/,\s*$/g, '');
+      fullAddress = `${formData.street || ''}${formData.number ? `, ${formData.number}` : ''}${formData.neighborhood ? `, ${formData.neighborhood}` : ''}, ${formData.city || ''}${formData.state ? ` - ${formData.state}` : ''}${formData.postalCode ? ` ${formData.postalCode}` : ''}`;
+      sessionStorage.setItem('registration_address', fullAddress);
     }
     
-    console.log('📝 Iniciando processo de registro:', { 
-      name: formData.name, 
-      email: formData.email, 
-      restaurantName: formData.restaurantName,
-      documentType: formData.documentType,
-      documentNumber: formData.documentNumber,
-      address: fullAddress,
-      isOnlineEstablishment: formData.isOnlineEstablishment,
-      businessHours: formData.businessHours,
-    });
+    // Salvar horários de funcionamento
+    sessionStorage.setItem('registration_business_hours', JSON.stringify(formData.businessHours));
     
-    try {
-      // Verificar se temos todos os dados necessários
-      if (!formData.name || !formData.email || !formData.password || !formData.restaurantName) {
-        toast({
-          title: "Dados incompletos",
-          description: "Por favor, preencha todos os campos obrigatórios.",
-          variant: "destructive",
-        });
-        setCurrentStep(1); // Voltar para a primeira etapa
-        return;
-      }
-      
-      const success = await register(
-        formData.name,
-        formData.email,
-        formData.password,
-        formData.restaurantName
-      );
+    const success = await register(
+      formData.name,
+      formData.email,
+      formData.password,
+      formData.restaurantName
+    );
 
-      if (success) {
-        console.log('✅ Registro realizado com sucesso');
-        
-        // Save additional information to be used after registration
-        sessionStorage.setItem('is_new_registration', 'true');
-        sessionStorage.setItem('registration_document_type', formData.documentType);
-        sessionStorage.setItem('registration_document_number', formData.documentNumber);
-        sessionStorage.setItem('registration_address', fullAddress);
-        sessionStorage.setItem('registration_is_online', formData.isOnlineEstablishment ? 'true' : 'false');
-        
-        // Armazenar campos de endereço separados
-        if (!formData.isOnlineEstablishment) {
-          sessionStorage.setItem('registration_street', formData.street || '');
-          sessionStorage.setItem('registration_number', formData.number || '');
-          sessionStorage.setItem('registration_neighborhood', formData.neighborhood || '');
-          sessionStorage.setItem('registration_city', formData.city || '');
-          sessionStorage.setItem('registration_state', formData.state || '');
-          sessionStorage.setItem('registration_postal_code', formData.postalCode || '');
-        } else {
-          sessionStorage.setItem('registration_online_address', formData.onlineAddress || '');
+    if (success) {
+      console.log('✅ Registro realizado com sucesso');
+      
+      // Marcar que é um novo registro
+      sessionStorage.setItem('is_new_registration', 'true');
+      
+      // Verificar se deve forçar o redirecionamento para o dashboard
+      const redirectToDashboard = sessionStorage.getItem('redirect_to_dashboard') === 'true';
+      
+      // Salvar informações do plano para uso posterior, se necessário
+      if (fromCheckout && selectedPlan && !redirectToDashboard) {
+        // Persistir o método de pagamento e plano selecionado para uso posterior
+        sessionStorage.setItem('selected_plan', selectedPlan);
+        if (paymentMethod) {
+          sessionStorage.setItem('selected_payment_method', paymentMethod);
         }
         
-        sessionStorage.setItem('registration_business_hours', JSON.stringify(formData.businessHours));
+        toast({
+          title: "Registro concluído",
+          description: "Sua conta foi criada com sucesso! Complete as informações do seu estabelecimento.",
+        });
         
-        // Verificar se deve forçar o redirecionamento para o dashboard
-        const redirectToDashboard = sessionStorage.getItem('redirect_to_dashboard') === 'true';
-        
-        // Salvar informações do plano para uso posterior, se necessário
-        if (fromCheckout && selectedPlan && !redirectToDashboard) {
-          // Persistir o método de pagamento e plano selecionado para uso posterior
-          sessionStorage.setItem('selected_plan', selectedPlan);
-          if (paymentMethod) {
-            sessionStorage.setItem('selected_payment_method', paymentMethod);
-          }
-          
-          toast({
-            title: "Registro concluído",
-            description: "Sua conta foi criada com sucesso! Complete as informações do seu estabelecimento.",
-          });
-          
-          // Redirecionar para o checkout
-          navigate('/checkout', { state: { selectedPlan } });
-        } else {
-          // Limpar flag de redirecionamento se existir
-          sessionStorage.removeItem('redirect_to_dashboard');
-          
-          toast({
-            title: "Registro concluído",
-            description: "Sua conta foi criada com sucesso!",
-          });
-          
-          // Redirecionar para o dashboard
-          console.log('✅ Redirecionando para o dashboard');
-          navigate('/dashboard');
-        }
+        // Redirecionar para o checkout
+        navigate('/checkout', { state: { selectedPlan } });
       } else {
-        console.log('❌ Falha no registro');
-        // Mensagem de erro já exibida pelo AuthContext
+        // Limpar flag de redirecionamento se existir
+        sessionStorage.removeItem('redirect_to_dashboard');
+        
+        toast({
+          title: "Registro concluído",
+          description: "Sua conta foi criada com sucesso!",
+        });
+        
+        // Redirecionar para o dashboard
+        console.log('✅ Redirecionando para o dashboard');
+        navigate('/dashboard');
       }
-    } catch (error) {
-      console.error('❌ Erro durante o registro:', error);
-      toast({
-        title: "Erro no registro",
-        description: "Ocorreu um erro inesperado. Por favor, tente novamente.",
-        variant: "destructive",
-      });
+    } else {
+      console.log('❌ Falha no registro');
+      // Mensagem de erro já exibida pelo AuthContext
     }
   };
 
@@ -677,7 +666,7 @@ export default function Register() {
               }`}
             >
               {step}
-                </div>
+            </div>
             <div className={`text-xs mt-1 ${
               step === currentStep ? 'text-primary font-medium' : 'text-gray-400'
             }`}>
@@ -1162,7 +1151,7 @@ export default function Register() {
                 )}
               </Button>
                 </div>
-            </form>
+              </form>
             ) : (
               <div className="space-y-4">
                 {renderFormStep()}

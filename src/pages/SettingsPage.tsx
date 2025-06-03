@@ -20,6 +20,17 @@ const SettingsPage = () => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   
+  // Função para gerar slug baseado no nome do restaurante
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  };
+  
   // Estados para as configurações gerais do restaurante
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -78,59 +89,121 @@ const SettingsPage = () => {
     { id: 2, name: 'Atendente', email: 'atendente@example.com', role: 'attendant' },
   ]);
   
+  // Estado para controlar se está carregando
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Estado para controlar se está salvando os horários
+  const [isSavingHours, setIsSavingHours] = useState(false);
+  
   // Carregar dados do restaurante quando o componente montar
   useEffect(() => {
     if (restaurant) {
-      // Preencher campos com dados do restaurante
-      setName(restaurant.name || '');
-      setPhone(restaurant.phone || '');
+      // Definir o nome do estabelecimento como 'kipizzaria'
+      setName('kipizzaria');
       
-      // Extrair dados de endereço
-      if (restaurant.address) {
-        // Tentar extrair informações do endereço
-        const addressParts = restaurant.address.split(',');
-        if (addressParts.length >= 1) {
-          // Tentar extrair rua e número
-          const streetAndNumber = addressParts[0].trim().split(' ');
-          if (streetAndNumber.length > 1) {
-            const potentialNumber = streetAndNumber.pop();
-            if (/^\d+/.test(potentialNumber || '')) {
-              setNumber(potentialNumber || '');
-              setStreet(streetAndNumber.join(' '));
+      // Preencher telefone
+      if (restaurant.phone) {
+        setPhone(restaurant.phone);
+      } else {
+        // Verificar se há telefone salvo no sessionStorage
+        const storedPhone = sessionStorage.getItem('registration_phone');
+        if (storedPhone) {
+          setPhone(storedPhone);
+        } else {
+          setPhone('(98) '); // Valor padrão para o telefone
+        }
+      }
+      
+      // Verificar se temos dados de endereço no sessionStorage primeiro
+      const storedStreet = sessionStorage.getItem('registration_street');
+      const storedNumber = sessionStorage.getItem('registration_number');
+      const storedNeighborhood = sessionStorage.getItem('registration_neighborhood');
+      const storedCity = sessionStorage.getItem('registration_city');
+      const storedState = sessionStorage.getItem('registration_state');
+      const storedPostalCode = sessionStorage.getItem('registration_postal_code');
+      
+      if (storedStreet || storedCity) {
+        // Usar dados do sessionStorage se disponíveis
+        setStreet(storedStreet || '');
+        setNumber(storedNumber || '');
+        setNeighborhood(storedNeighborhood || '');
+        setCity(storedCity || '');
+        setState(storedState || '');
+        setPostalCode(storedPostalCode || '');
+      } else if (restaurant.address) {
+        // Extrair informações do endereço do restaurante
+        try {
+          // Tentar dividir o endereço em partes
+          const addressParts = restaurant.address.split(',').map(part => part.trim());
+          
+          // Primeira parte geralmente é rua + número
+          if (addressParts.length >= 1) {
+            const streetPart = addressParts[0];
+            // Tentar extrair o número do final da string
+            const numberMatch = streetPart.match(/\s+(\d+)\s*$/);
+            
+            if (numberMatch) {
+              setNumber(numberMatch[1]);
+              setStreet(streetPart.replace(numberMatch[0], '').trim());
             } else {
-              setStreet(addressParts[0].trim());
-            }
-          } else {
-            setStreet(addressParts[0].trim());
-          }
-        }
-        
-        // Tentar extrair bairro
-        if (addressParts.length >= 2) {
-          setNeighborhood(addressParts[1].trim());
-        }
-        
-        // Tentar extrair cidade e estado
-        if (addressParts.length >= 3) {
-          const cityStateZip = addressParts[2].trim().split('-');
-          if (cityStateZip.length > 0) {
-            setCity(cityStateZip[0].trim());
-          }
-          if (cityStateZip.length > 1) {
-            const stateZip = cityStateZip[1].trim().split(' ');
-            if (stateZip.length > 0) {
-              setState(stateZip[0].trim());
-            }
-            if (stateZip.length > 1) {
-              setPostalCode(stateZip[1].trim());
+              setStreet(streetPart);
             }
           }
+          
+          // Segunda parte geralmente é o bairro
+          if (addressParts.length >= 2) {
+            setNeighborhood(addressParts[1]);
+          }
+          
+          // Terceira parte pode conter cidade, estado e CEP
+          if (addressParts.length >= 3) {
+            const cityStatePart = addressParts[2];
+            
+            // Extrair estado (geralmente formato "Cidade - UF CEP")
+            const stateMatch = cityStatePart.match(/\s+-\s+([A-Z]{2})/);
+            if (stateMatch) {
+              setState(stateMatch[1]);
+              // Dividir entre cidade e resto
+              const cityParts = cityStatePart.split('-');
+              if (cityParts.length > 0) {
+                setCity(cityParts[0].trim());
+              }
+              
+              // Verificar se há CEP após o estado
+              const cepMatch = cityParts[1]?.match(/\d{5}-?\d{3}/);
+              if (cepMatch) {
+                setPostalCode(cepMatch[0]);
+              }
+            } else {
+              // Se não tem formato com traço, pode ser só a cidade
+              setCity(cityStatePart);
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao extrair dados de endereço:', error);
         }
       }
       
       // Carregar horários de funcionamento, se existirem
       if (restaurant.opening_hours) {
         try {
+          // Verificar primeiro se temos horários no sessionStorage
+          const storedHours = sessionStorage.getItem('registration_business_hours');
+          
+          if (storedHours) {
+            try {
+              const parsedHours = JSON.parse(storedHours);
+              if (Array.isArray(parsedHours) && parsedHours.length === 7) {
+                console.log("Carregando horários do sessionStorage:", parsedHours);
+                setBusinessHours(parsedHours);
+                return; // Sair da função se conseguimos carregar do sessionStorage
+              }
+            } catch (parseError) {
+              console.error('Erro ao processar horários do sessionStorage:', parseError);
+            }
+          }
+          
+          // Se não conseguimos carregar do sessionStorage, usar os do restaurante
           const hoursData = typeof restaurant.opening_hours === 'string' 
             ? JSON.parse(restaurant.opening_hours) 
             : restaurant.opening_hours;
@@ -140,6 +213,20 @@ const SettingsPage = () => {
           }
         } catch (error) {
           console.error('Erro ao processar horários de funcionamento:', error);
+        }
+      } else {
+        // Se não temos horários no restaurante, tentar carregar do sessionStorage
+        const storedHours = sessionStorage.getItem('registration_business_hours');
+        if (storedHours) {
+          try {
+            const parsedHours = JSON.parse(storedHours);
+            if (Array.isArray(parsedHours) && parsedHours.length === 7) {
+              console.log("Carregando horários do sessionStorage (sem horários no restaurante):", parsedHours);
+              setBusinessHours(parsedHours);
+            }
+          } catch (parseError) {
+            console.error('Erro ao processar horários do sessionStorage:', parseError);
+          }
         }
       }
       
@@ -240,7 +327,10 @@ const SettingsPage = () => {
     
     // Buscar CEP automaticamente quando tiver 8 dígitos
     if (value.replace(/\D/g, '').length === 8) {
-      handleCepSearch();
+      // Pequeno delay para garantir que o estado foi atualizado
+      setTimeout(() => {
+        handleCepSearch();
+      }, 100);
     }
   };
   
@@ -256,35 +346,92 @@ const SettingsPage = () => {
   };
   
   // Função para salvar configurações gerais
-  const saveGeneralSettings = () => {
+  const saveGeneralSettings = async () => {
     if (restaurant) {
-      // Compor endereço completo
-      const fullAddress = composeFullAddress();
-      
-      updateRestaurantInfo({
-        name,
-        phone,
-        address: fullAddress
-      });
-      
-      toast({
-        title: "Configurações salvas",
-        description: "As informações do restaurante foram atualizadas com sucesso"
-      });
+      setIsSaving(true);
+      try {
+        // Compor endereço completo
+        const fullAddress = composeFullAddress();
+        
+        // Atualizar slug no sessionStorage quando o nome for alterado
+        if (name !== restaurant.name) {
+          const newSlug = generateSlug(name);
+          sessionStorage.setItem('registration_restaurant_slug', newSlug);
+          sessionStorage.setItem('registration_restaurant_name', name);
+        }
+        
+        // Salvar telefone no sessionStorage para uso futuro
+        sessionStorage.setItem('registration_phone', phone);
+        
+        console.log('Salvando configurações:', { name, phone, fullAddress });
+        
+        // Atualizar as informações do restaurante
+        const success = await updateRestaurantInfo({
+          name,
+          phone,
+          address: fullAddress
+        });
+        
+        if (success) {
+          toast({
+            title: "Configurações salvas",
+            description: "As informações do restaurante foram atualizadas com sucesso"
+          });
+        } else {
+          toast({
+            title: "Erro ao salvar",
+            description: "Ocorreu um erro ao salvar as configurações. Tente novamente.",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao salvar configurações:', error);
+        toast({
+          title: "Erro ao salvar",
+          description: "Ocorreu um erro inesperado. Tente novamente.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
   
   // Função para salvar horários de funcionamento
-  const saveBusinessHours = () => {
+  const saveBusinessHours = async () => {
     if (restaurant) {
-      updateRestaurantInfo({
-        opening_hours: JSON.stringify(businessHours)
-      });
-      
-      toast({
-        title: "Horários salvos",
-        description: "Os horários de funcionamento foram atualizados com sucesso"
-      });
+      setIsSavingHours(true);
+      try {
+        // Salvar os horários no sessionStorage para persistência
+        sessionStorage.setItem('registration_business_hours', JSON.stringify(businessHours));
+        
+        // Atualizar no contexto/banco de dados
+        const success = await updateRestaurantInfo({
+          opening_hours: JSON.stringify(businessHours)
+        });
+        
+        if (success) {
+          toast({
+            title: "Horários salvos",
+            description: "Os horários de funcionamento foram atualizados com sucesso"
+          });
+        } else {
+          toast({
+            title: "Erro ao salvar",
+            description: "Ocorreu um erro ao salvar os horários. Tente novamente.",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao salvar horários:', error);
+        toast({
+          title: "Erro ao salvar",
+          description: "Ocorreu um erro inesperado. Tente novamente.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsSavingHours(false);
+      }
     }
   };
   
@@ -312,6 +459,37 @@ const SettingsPage = () => {
 
   const saveNotificationSettings = () => {
     console.log('Configurações de notificações salvas');
+  };
+
+  // Formatar telefone enquanto o usuário digita
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 11) value = value.substring(0, 11);
+    
+    // Formatação: (00) 00000-0000 ou (00) 0000-0000
+    if (value.length <= 0) {
+      setPhone("");
+      return;
+    }
+    
+    // Adicionar parênteses para DDD
+    let formattedValue = `(${value.substring(0, 2)}`;
+    if (value.length > 2) formattedValue += ') ';
+    
+    // Adicionar o número principal
+    if (value.length > 2) {
+      if (value.length <= 6) {
+        formattedValue += value.substring(2);
+      } else if (value.length <= 10) { 
+        // Telefone fixo (8 dígitos)
+        formattedValue += `${value.substring(2, 6)}-${value.substring(6)}`;
+      } else {
+        // Celular (9 dígitos)
+        formattedValue += `${value.substring(2, 7)}-${value.substring(7)}`;
+      }
+    }
+    
+    setPhone(formattedValue);
   };
 
   return (
@@ -359,6 +537,12 @@ const SettingsPage = () => {
                     onChange={(e) => setName(e.target.value)} 
                     placeholder="Nome do seu estabelecimento"
                   />
+                  {restaurant && (
+                    <p className="text-xs text-muted-foreground">
+                      Seu estabelecimento está disponível em: 
+                      <span className="font-medium"> comandeja.com/kipizzaria</span>
+                    </p>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
@@ -366,7 +550,7 @@ const SettingsPage = () => {
                   <Input 
                     id="restaurant-phone" 
                     value={phone} 
-                    onChange={(e) => setPhone(e.target.value)} 
+                    onChange={handlePhoneChange} 
                     placeholder="(00) 00000-0000"
                   />
                 </div>
@@ -442,8 +626,15 @@ const SettingsPage = () => {
                 </div>
               </div>
               
-              <Button onClick={saveGeneralSettings} className="w-full md:w-auto mt-4">
-                Salvar Alterações
+              <Button onClick={saveGeneralSettings} className="w-full md:w-auto mt-4" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span>Salvando...</span>
+                  </>
+                ) : (
+                  'Salvar Alterações'
+                )}
               </Button>
             </CardContent>
           </Card>
@@ -499,8 +690,15 @@ const SettingsPage = () => {
                 ))}
               </div>
               
-              <Button onClick={saveBusinessHours} className="w-full md:w-auto mt-4">
-                Salvar Horários
+              <Button onClick={saveBusinessHours} className="w-full md:w-auto mt-4" disabled={isSavingHours}>
+                {isSavingHours ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span>Salvando...</span>
+                  </>
+                ) : (
+                  'Salvar Horários'
+                )}
               </Button>
             </CardContent>
           </Card>

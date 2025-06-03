@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -108,6 +108,71 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, restaurantNam
       zipCode: ''
     }
   });
+  
+  // Effect to load registration data from sessionStorage
+  useEffect(() => {
+    const loadRegistrationData = () => {
+      // Check if we have registration data from the register process
+      const documentType = sessionStorage.getItem('registration_document_type') as 'cpf' | 'cnpj' || 'cpf';
+      const documentNumber = sessionStorage.getItem('registration_document_number') || '';
+      const address = sessionStorage.getItem('registration_address') || '';
+      const isOnline = sessionStorage.getItem('registration_is_online') === 'true';
+      
+      // Set document type
+      setDocumentType(documentType);
+      businessInfoForm.setValue('documentType', documentType);
+      
+      // Set document number if available
+      if (documentNumber) {
+        businessInfoForm.setValue('documentNumber', documentNumber);
+      }
+      
+      // Set address or individual fields
+      if (isOnline) {
+        const onlineAddress = sessionStorage.getItem('registration_online_address') || '';
+        businessInfoForm.setValue('address', onlineAddress || 'Estabelecimento online');
+      } else {
+        // If we have specific address fields, use them
+        const street = sessionStorage.getItem('registration_street') || '';
+        const number = sessionStorage.getItem('registration_number') || '';
+        const neighborhood = sessionStorage.getItem('registration_neighborhood') || '';
+        const city = sessionStorage.getItem('registration_city') || '';
+        const state = sessionStorage.getItem('registration_state') || '';
+        const postalCode = sessionStorage.getItem('registration_postal_code') || '';
+        
+        // Format complete address if individual fields are available
+        if (street && city) {
+          const formattedAddress = `${street}${number ? `, ${number}` : ''}${neighborhood ? `, ${neighborhood}` : ''}, ${city}${state ? ` - ${state}` : ''}`;
+          businessInfoForm.setValue('address', formattedAddress);
+        } else if (address) {
+          // Otherwise use the complete address if available
+          businessInfoForm.setValue('address', address);
+        }
+        
+        // Set city and state
+        businessInfoForm.setValue('city', city);
+        businessInfoForm.setValue('state', state);
+        businessInfoForm.setValue('zipCode', postalCode);
+      }
+      
+      // Clear sessionStorage to avoid reusing the data inappropriately
+      // We'll keep it in case the user needs to go through the process again
+      // sessionStorage.removeItem('registration_document_type');
+      // sessionStorage.removeItem('registration_document_number');
+      // sessionStorage.removeItem('registration_address');
+      // sessionStorage.removeItem('registration_is_online');
+      // sessionStorage.removeItem('registration_street');
+      // sessionStorage.removeItem('registration_number');
+      // sessionStorage.removeItem('registration_neighborhood');
+      // sessionStorage.removeItem('registration_city');
+      // sessionStorage.removeItem('registration_state');
+      // sessionStorage.removeItem('registration_postal_code');
+      // sessionStorage.removeItem('registration_online_address');
+      // sessionStorage.removeItem('registration_business_hours');
+    };
+    
+    loadRegistrationData();
+  }, []);
   
   // Form for business hours
   const businessHoursForm = useForm<z.infer<typeof businessHoursSchema>>({

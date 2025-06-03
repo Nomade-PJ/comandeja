@@ -4,6 +4,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { RestaurantService } from '@/lib/services/restaurant-service';
 import * as Models from '@/lib/models';
 import supabase from '@/lib/supabase';
+import { getCurrentRestaurant } from '@/lib/utils';
 
 // Types para uso no contexto
 export type Category = Models.Category;
@@ -37,6 +38,7 @@ type RestaurantContextType = {
   fetchReviews: (page?: number, limit?: number) => Promise<void>;
   fetchCoupons: (activeOnly?: boolean) => Promise<void>;
   validateCoupon: (code: string, orderValue: number) => Promise<Models.Coupon | null>;
+  loadCategories: () => Promise<void>;
   isLoading: boolean;
   pagination: {
     orders: { page: number, total: number, limit: number },
@@ -73,6 +75,130 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     if (user?.restaurantId) {
       loadRestaurantData();
+    } else if (user) {
+      // Se o usuário está autenticado mas não tem restaurante associado,
+      // vamos criar um restaurante mock para permitir o funcionamento básico
+      console.warn('Usuário autenticado mas sem restaurante associado, usando mock');
+      
+      // Verificar se temos dados de registro no sessionStorage
+      const registrationName = sessionStorage.getItem('registration_restaurant_name');
+      const restaurantName = registrationName || 'Restaurante Demo';
+      
+      // Obter slug do sessionStorage ou gerar a partir do nome
+      const storedSlug = sessionStorage.getItem('registration_restaurant_slug');
+      const slug = storedSlug || restaurantName
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      
+      // Verificar se temos dados de endereço
+      const isOnline = sessionStorage.getItem('registration_is_online') === 'true';
+      let address = 'Endereço de Demonstração';
+      
+      if (isOnline) {
+        address = sessionStorage.getItem('registration_online_address') || 'Estabelecimento online';
+      } else {
+        const street = sessionStorage.getItem('registration_street') || '';
+        const number = sessionStorage.getItem('registration_number') || '';
+        const neighborhood = sessionStorage.getItem('registration_neighborhood') || '';
+        const city = sessionStorage.getItem('registration_city') || '';
+        const state = sessionStorage.getItem('registration_state') || '';
+        
+        if (street && city) {
+          address = `${street}${number ? `, ${number}` : ''}${neighborhood ? `, ${neighborhood}` : ''}, ${city}${state ? ` - ${state}` : ''}`;
+        }
+      }
+      
+      // Verificar se temos dados de horário de funcionamento
+      const businessHoursJson = sessionStorage.getItem('registration_business_hours');
+      let openingHours = '09:00 - 22:00';
+      if (businessHoursJson) {
+        try {
+          const businessHours = JSON.parse(businessHoursJson);
+          // Usar o primeiro dia útil com horário aberto
+          const weekday = businessHours.find((day: any) => day.isOpen && day.dayOfWeek > 0 && day.dayOfWeek < 6);
+          if (weekday) {
+            openingHours = `${weekday.openTime} - ${weekday.closeTime}`;
+          }
+        } catch (e) {
+          console.error('Erro ao parsear horários de funcionamento:', e);
+        }
+      }
+      
+      const mockRestaurant: Restaurant = {
+        id: 'mock-restaurant-id',
+        owner_id: user.id,
+        name: 'kipizzaria',
+        slug: 'kipizzaria',
+        description: 'Seja bem vindo(a) ao nosso sistema Completo.',
+        phone: sessionStorage.getItem('registration_phone') || '(00) 0000-0000',
+        address: address,
+        opening_hours: openingHours,
+        logo_url: '',
+        banner_url: '',
+        created_at: new Date(),
+        updated_at: new Date(),
+        is_active: true
+      };
+      
+      setRestaurant(mockRestaurant);
+      
+      // Também configuramos algumas categorias mock
+      const mockCategories: Category[] = [
+        {
+          id: 'mock-category-1',
+          restaurant_id: mockRestaurant.id,
+          name: 'Lanches',
+          description: 'Hambúrgueres e sanduíches',
+          is_active: true,
+          sort_order: 1,
+          created_at: new Date(),
+          updated_at: new Date()
+        },
+        {
+          id: 'mock-category-2',
+          restaurant_id: mockRestaurant.id,
+          name: 'Bebidas',
+          description: 'Refrigerantes e sucos',
+          is_active: true,
+          sort_order: 2,
+          created_at: new Date(),
+          updated_at: new Date()
+        }
+      ];
+      
+      setCategories(mockCategories);
+      
+      // E alguns produtos mock
+      const mockProducts: Product[] = [
+        {
+          id: 'mock-product-1',
+          restaurant_id: mockRestaurant.id,
+          category_id: 'mock-category-1',
+          name: 'Hambúrguer Clássico',
+          description: 'Hambúrguer com queijo, alface e tomate',
+          price: 15.90,
+          is_active: true,
+          created_at: new Date(),
+          updated_at: new Date()
+        },
+        {
+          id: 'mock-product-2',
+          restaurant_id: mockRestaurant.id,
+          category_id: 'mock-category-2',
+          name: 'Refrigerante',
+          description: 'Refrigerante de cola 350ml',
+          price: 5.90,
+          is_active: true,
+          created_at: new Date(),
+          updated_at: new Date()
+        }
+      ];
+      
+      setProducts(mockProducts);
     }
   }, [user]);
 
@@ -108,6 +234,11 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Buscar cupons
       await fetchCoupons();
       
+      // Depois que o restaurante for carregado, carregar categorias
+      if (restaurantData) {
+        await loadCategories();
+      }
+      
     } catch (error) {
       console.error('Erro ao carregar dados do restaurante:', error);
       toast({
@@ -126,6 +257,20 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     setIsLoading(true);
     try {
+      // Se for o restaurant mock, apenas atualize o state localmente
+      if (restaurant.id === 'mock-restaurant-id') {
+        console.log('Atualizando mock restaurant:', { ...restaurant, ...info });
+        setRestaurant(prev => prev ? { ...prev, ...info } : null);
+        
+        // Salvar os valores atualizados no sessionStorage para persistência entre recarregamentos
+        if (info.name) sessionStorage.setItem('registration_restaurant_name', info.name);
+        if (info.phone) sessionStorage.setItem('registration_phone', info.phone);
+        if (info.address) sessionStorage.setItem('registration_address', info.address);
+        
+        return true;
+      }
+      
+      // Caso contrário, faça a atualização no banco de dados
       const success = await RestaurantService.updateRestaurant(restaurant.id, info);
       
       if (success) {
@@ -198,6 +343,34 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     setIsLoading(true);
     try {
+      // Se for o restaurante mock, criar categoria localmente
+      if (restaurant.id === 'mock-restaurant-id') {
+        // Gerar ID único para a categoria
+        const mockId = `mock-category-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Criar nova categoria com o ID gerado
+        const newCategory: Category = {
+          ...category,
+          id: mockId,
+          created_at: new Date(),
+          updated_at: new Date()
+        };
+        
+        // Adicionar categoria ao estado
+        setCategories(prev => [...prev, newCategory]);
+        
+        toast({
+          title: "Categoria adicionada",
+          description: "A categoria foi adicionada com sucesso."
+        });
+        
+        console.log("Categoria mock adicionada com sucesso:", newCategory);
+        
+        setIsLoading(false);
+        return mockId;
+      }
+      
+      // Caso contrário, tentar adicionar no Supabase
       const { data, error } = await supabase
         .from('categories')
         .insert({
@@ -227,6 +400,9 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         description: "A categoria foi adicionada com sucesso."
       });
       
+      // Carregar categorias novamente para garantir sincronização
+      loadCategories();
+      
       return data.id;
     } catch (error) {
       console.error('Erro inesperado ao adicionar categoria:', error);
@@ -247,6 +423,25 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     setIsLoading(true);
     try {
+      // Se for o restaurante mock, atualizar categoria localmente
+      if (restaurant.id === 'mock-restaurant-id') {
+        // Atualizar categoria no estado
+        setCategories(prev => 
+          prev.map(c => c.id === category.id ? {...category, updated_at: new Date()} : c)
+        );
+        
+        toast({
+          title: "Categoria atualizada",
+          description: "A categoria foi atualizada com sucesso."
+        });
+        
+        console.log("Categoria mock atualizada com sucesso:", category);
+        
+        setIsLoading(false);
+        return true;
+      }
+      
+      // Caso contrário, tentar atualizar no Supabase
       const { error } = await supabase
         .from('categories')
         .update({
@@ -298,6 +493,23 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     setIsLoading(true);
     try {
+      // Se for o restaurante mock, excluir categoria localmente
+      if (restaurant.id === 'mock-restaurant-id') {
+        // Remover categoria do estado
+        setCategories(prev => prev.filter(c => c.id !== categoryId));
+        
+        toast({
+          title: "Categoria excluída",
+          description: "A categoria foi excluída com sucesso."
+        });
+        
+        console.log("Categoria mock excluída com sucesso:", categoryId);
+        
+        setIsLoading(false);
+        return true;
+      }
+      
+      // Caso contrário, tentar excluir no Supabase
       const { error } = await supabase
         .from('categories')
         .update({
@@ -344,6 +556,34 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     setIsLoading(true);
     try {
+      // Se for o restaurante mock, criar produto localmente
+      if (restaurant.id === 'mock-restaurant-id') {
+        // Gerar ID único para o produto
+        const mockId = `mock-product-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Criar novo produto com o ID gerado
+        const newProduct: Product = {
+          ...product,
+          id: mockId,
+          created_at: new Date(),
+          updated_at: new Date()
+        };
+        
+        // Adicionar produto ao estado
+        setProducts(prev => [...prev, newProduct]);
+        
+        toast({
+          title: "Produto adicionado",
+          description: "O produto foi adicionado com sucesso."
+        });
+        
+        console.log("Produto mock adicionado com sucesso:", newProduct);
+        
+        setIsLoading(false);
+        return mockId;
+      }
+      
+      // Caso contrário, tentar adicionar no Supabase
       const { data, error } = await supabase
         .from('products')
         .insert({
@@ -393,6 +633,25 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     setIsLoading(true);
     try {
+      // Se for o restaurante mock, atualizar produto localmente
+      if (restaurant.id === 'mock-restaurant-id') {
+        // Atualizar produto no estado
+        setProducts(prev => 
+          prev.map(p => p.id === product.id ? {...product, updated_at: new Date()} : p)
+        );
+        
+        toast({
+          title: "Produto atualizado",
+          description: "O produto foi atualizado com sucesso."
+        });
+        
+        console.log("Produto mock atualizado com sucesso:", product);
+        
+        setIsLoading(false);
+        return true;
+      }
+      
+      // Caso contrário, tentar atualizar no Supabase
       const { error } = await supabase
         .from('products')
         .update({
@@ -446,6 +705,23 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     setIsLoading(true);
     try {
+      // Se for o restaurante mock, excluir produto localmente
+      if (restaurant.id === 'mock-restaurant-id') {
+        // Remover produto do estado
+        setProducts(prev => prev.filter(p => p.id !== productId));
+        
+        toast({
+          title: "Produto excluído",
+          description: "O produto foi excluído com sucesso."
+        });
+        
+        console.log("Produto mock excluído com sucesso:", productId);
+        
+        setIsLoading(false);
+        return true;
+      }
+      
+      // Caso contrário, tentar excluir no Supabase
       const { error } = await supabase
         .from('products')
         .update({
@@ -718,6 +994,92 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  // Nova função para carregar categorias 
+  const loadCategories = async () => {
+    try {
+      // Primeiro verificamos se temos o ID do restaurante
+      const restaurantId = restaurant?.id;
+      
+      // Se não temos ID do restaurante, tentamos obter do usuário
+      if (!restaurantId && user?.restaurantId) {
+        console.log('loadCategories: Usando restaurantId do usuário', user.restaurantId);
+        
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('restaurant_id', user.restaurantId)
+          .order('sort_order', { ascending: true });
+          
+        if (error) {
+          console.error('Erro ao carregar categorias:', error);
+          return;
+        }
+        
+        if (data) {
+          console.log('loadCategories: Categorias carregadas com sucesso', data.length);
+          setCategories(data as Category[]);
+          
+          // Se temos categorias, carregar produtos também
+          loadProducts(user.restaurantId);
+        }
+        return;
+      }
+      
+      // Se ainda não temos ID do restaurante, retornar (já usamos mock anteriormente)
+      if (!restaurantId) {
+        console.warn('loadCategories: Sem ID de restaurante disponível');
+        return;
+      }
+      
+      console.log('loadCategories: Carregando categorias para o restaurante', restaurantId);
+      
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('restaurant_id', restaurantId)
+        .order('sort_order', { ascending: true });
+        
+      if (error) {
+        console.error('Erro ao carregar categorias:', error);
+        return;
+      }
+      
+      if (data) {
+        console.log('loadCategories: Categorias carregadas com sucesso', data.length);
+        setCategories(data as Category[]);
+        
+        // Se temos categorias, carregar produtos também
+        loadProducts(restaurantId);
+      }
+    } catch (error) {
+      console.error('Erro inesperado ao carregar categorias:', error);
+    }
+  };
+  
+  // Função auxiliar para carregar produtos
+  const loadProducts = async (restaurantId: string) => {
+    try {
+      console.log('loadProducts: Carregando produtos para o restaurante', restaurantId);
+      
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('restaurant_id', restaurantId);
+        
+      if (error) {
+        console.error('Erro ao carregar produtos:', error);
+        return;
+      }
+      
+      if (data) {
+        console.log('loadProducts: Produtos carregados com sucesso', data.length);
+        setProducts(data as Product[]);
+      }
+    } catch (error) {
+      console.error('Erro inesperado ao carregar produtos:', error);
+    }
+  };
+
   return (
     <RestaurantContext.Provider
       value={{
@@ -744,6 +1106,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         fetchReviews,
         fetchCoupons,
         validateCoupon,
+        loadCategories,
         isLoading,
         pagination
       }}

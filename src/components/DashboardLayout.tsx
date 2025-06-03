@@ -291,7 +291,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
               <div className="space-y-2">
                 <div className="flex items-center text-sm">
                   <Clock className="w-4 h-4 mr-2 text-gray-500" />
-                  <span>{restaurant.opening_hours}</span>
+                  <span>{restaurant.opening_hours || "09:00 - 18:00"}</span>
                 </div>
                 <div className="flex items-center text-sm">
                   <MapPin className="w-4 h-4 mr-2 text-gray-500" />

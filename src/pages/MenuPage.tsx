@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useRestaurant } from '@/contexts/RestaurantContext';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
@@ -15,8 +14,11 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
-import { OrderCreateInput, Product, MockProduct, OrderStatus } from '@/lib/models';
+import { OrderCreateInput, Product, MockProduct, OrderStatus, Category } from '@/lib/models';
 import { ShoppingCart } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import supabase from '@/lib/supabase';
 
 // Definir a interface correta para os parâmetros
 interface RouteParams {
@@ -26,7 +28,7 @@ interface RouteParams {
 
 const MenuPage: React.FC = () => {
   const { restaurantId } = useParams<RouteParams>();
-  const { products } = useRestaurant();
+  const { products, categories, loadCategories } = useRestaurant();
   const { cartItems, setCartItems } = useCart();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isOrderComplete, setIsOrderComplete] = useState(false);
@@ -36,12 +38,63 @@ const MenuPage: React.FC = () => {
   const [customerAddress, setCustomerAddress] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
+  const [restaurantInfo, setRestaurantInfo] = useState<{name: string, openingHours: string} | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  // Verificar se o restaurante existe quando o componente for montado
+  useEffect(() => {
+    const checkRestaurant = async () => {
+      if (!restaurantId) {
+        navigate('/');
+        return;
+      }
+      
+      setIsLoading(true);
+      try {
+        // Verificar se o restaurante existe pelo slug
+        const { data, error } = await supabase
+          .from('restaurants')
+          .select('id, name, opening_hours')
+          .eq('slug', restaurantId)
+          .single();
+        
+        if (error || !data) {
+          console.error('Restaurante não encontrado:', error);
+          // Redirecionar para a página inicial após um pequeno delay
+          setTimeout(() => navigate('/'), 100);
+          return;
+        }
+        
+        // Se chegou aqui, o restaurante existe
+        setRestaurantInfo({
+          name: data.name,
+          openingHours: data.opening_hours || 'Horário não informado'
+        });
+        
+        // Carregar categorias específicas para este restaurante
+        if (loadCategories) {
+          await loadCategories();
+        }
+      } catch (error) {
+        console.error('Erro ao verificar restaurante:', error);
+        navigate('/');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkRestaurant();
+  }, [restaurantId, navigate, loadCategories]);
 
   useEffect(() => {
-    // You might want to fetch the restaurant details here using restaurantId
-    // and set the restaurant name, opening hours, etc.
-  }, [restaurantId]);
+    // Set the first category as active when categories load
+    if (categories.length > 0 && !activeCategory) {
+      setActiveCategory(categories[0].id);
+    }
+  }, [categories, activeCategory]);
 
   const handleAddToCart = (product: Product | MockProduct) => {
     setCartItems(prevItems => {
@@ -186,21 +239,68 @@ const MenuPage: React.FC = () => {
     }
   };
 
+  // Agrupar produtos por categoria
+  const getProductsByCategory = (categoryId: string) => {
+    return products.filter(product => product.category_id === categoryId || product.categoryId === categoryId);
+  };
+
+  // Produtos sem categoria
+  const getUncategorizedProducts = () => {
+    return products.filter(product => !product.category_id && !product.categoryId);
+  };
+
+  // Se estiver carregando ou verificando o restaurante
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex justify-center items-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-500">Carregando informações do restaurante...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    
-    <div className="container mx-auto mt-8">
-      <h1 className="text-2xl font-bold mb-4">Cardápio</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map(product => (
-          <div key={product.id} className="border rounded-md p-4">
-            <h2 className="text-lg font-semibold">{product.name}</h2>
-            <p className="text-gray-600">{product.description}</p>
-            <p className="text-green-500 font-bold">R$ {product.price.toFixed(2)}</p>
-            <Button onClick={() => setCartItems(prev => [...prev, { product, quantity: 1 }])}>
-              Adicionar ao Carrinho
-            </Button>
-          </div>
-        ))}
+    <div className="container mx-auto px-4 py-8">
+      {/* Cabeçalho do Restaurante */}
+      <div className="bg-slate-800 text-white rounded-lg p-6 mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">{restaurantInfo?.name || "PizzariaEsquina"}</h1>
+          <p className="text-sm mt-1">{restaurantInfo?.openingHours || "Seg-Dom: 11h - 22h"}</p>
+          <p className="text-sm mt-1">Endereço não informado</p>
+          <p className="text-sm">Telefone não informado</p>
+        </div>
+        <div>
+          <Button 
+            variant="outline" 
+            onClick={() => setIsCheckoutOpen(true)}
+            className="bg-orange-500 hover:bg-orange-600 text-white"
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            <span>Carrinho ({cartItems.length})</span>
+          </Button>
+        </div>
+      </div>
+      
+      {/* Campo de Busca */}
+      <div className="mb-6">
+        <Input 
+          type="search" 
+          placeholder="Buscar produtos..." 
+          className="w-full max-w-xl"
+        />
+      </div>
+      
+      {/* Área de categorias e produtos - substituída por uma mensagem informativa */}
+      <div className="bg-gray-100 rounded-lg p-8 text-center">
+        <h2 className="text-xl font-semibold mb-4">Menu do Restaurante</h2>
+        <p className="text-gray-500 mb-4">
+          Adicione categorias e produtos através do painel administrativo para que apareçam aqui.
+        </p>
+        <p className="text-gray-400 text-sm">
+          Vá para a página "Produtos" no painel admin para gerenciar seu cardápio.
+        </p>
       </div>
 
       {/* Checkout Modal */}
@@ -248,79 +348,111 @@ const MenuPage: React.FC = () => {
                   </div>
                 ))}
               </div>
-
-              <div className="mt-4">
-                <h4 className="text-lg font-semibold">Detalhes do Cliente</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                  <Input
-                    type="text"
-                    placeholder="Nome"
-                    value={customerName}
-                    onChange={e => setCustomerName(e.target.value)}
-                  />
-                  <Input
-                    type="tel"
-                    placeholder="Telefone"
-                    value={customerPhone}
-                    onChange={e => setCustomerPhone(e.target.value)}
-                  />
+              
+              {/* Informações do cliente */}
+              {cartItems.length > 0 && (
+                <div className="mt-6 space-y-4">
+                  <h3 className="font-semibold text-lg">Informações para entrega</h3>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nome</Label>
+                    <Input
+                      id="name"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Seu nome completo"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefone</Label>
+                    <Input
+                      id="phone"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="Seu telefone com DDD"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Button
+                        variant={deliveryType === 'delivery' ? 'default' : 'outline'}
+                        onClick={() => setDeliveryType('delivery')}
+                      >
+                        Entrega
+                      </Button>
+                      <Button
+                        variant={deliveryType === 'pickup' ? 'default' : 'outline'}
+                        onClick={() => setDeliveryType('pickup')}
+                      >
+                        Retirada
+                      </Button>
+                    </div>
+                    
+                    {deliveryType === 'delivery' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="address">Endereço de entrega</Label>
+                        <Textarea
+                          id="address"
+                          value={customerAddress}
+                          onChange={(e) => setCustomerAddress(e.target.value)}
+                          placeholder="Endereço completo para entrega"
+                          rows={3}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Observações</Label>
+                    <Textarea
+                      id="notes"
+                      value={orderNotes}
+                      onChange={(e) => setOrderNotes(e.target.value)}
+                      placeholder="Alguma observação para seu pedido?"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <div className="pt-6 mt-6 border-t">
+                    <div className="flex justify-between mb-2">
+                      <span>Subtotal</span>
+                      <span>R$ {calculateCartTotal().toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between mb-2">
+                      <span>Taxa de entrega</span>
+                      <span>R$ {(deliveryType === 'delivery' ? 5 : 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total</span>
+                      <span>R$ {(calculateCartTotal() + (deliveryType === 'delivery' ? 5 : 0)).toFixed(2)}</span>
+                    </div>
+                    
+                    <Button 
+                      className="w-full mt-4 bg-green-500 hover:bg-green-600"
+                      onClick={handleCheckout}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? "Processando..." : "Finalizar Pedido"}
+                    </Button>
+                  </div>
                 </div>
-                <Textarea
-                  placeholder="Endereço de Entrega"
-                  className="mt-2"
-                  value={customerAddress}
-                  onChange={e => setCustomerAddress(e.target.value)}
-                />
-                <Textarea
-                  placeholder="Observações"
-                  className="mt-2"
-                  value={orderNotes}
-                  onChange={e => setOrderNotes(e.target.value)}
-                />
-                <select
-                  className="mt-2 w-full p-2 border rounded-md"
-                  value={deliveryType}
-                  onChange={e => setDeliveryType(e.target.value as 'delivery' | 'pickup')}
-                >
-                  <option value="delivery">Entrega</option>
-                  <option value="pickup">Retirada</option>
-                </select>
-              </div>
-
-              <div className="mt-4">
-                <h3 className="text-xl font-semibold">Total: R$ {calculateCartTotal().toFixed(2)}</h3>
-              </div>
-            
+              )}
+              
+              {cartItems.length === 0 && (
+                <div className="text-center py-8">
+                  <p>Seu carrinho está vazio.</p>
+                  <Button variant="outline" className="mt-4" onClick={() => setIsCheckoutOpen(false)}>
+                    Voltar para o cardápio
+                  </Button>
+                </div>
+              )}
+              
             </ScrollArea>
           )}
-
-          <div className="mt-4 flex justify-between">
-            <Button variant="secondary" onClick={() => setIsCheckoutOpen(false)}>
-              Voltar ao Menu
-            </Button>
-            {!isOrderComplete && (
-              <Button
-                onClick={handleCheckout}
-                disabled={isProcessing}
-              >
-                {isProcessing ? "Processando..." : "Finalizar Pedido"}
-              </Button>
-            )}
-          </div>
         </DialogContent>
       </Dialog>
-
-      {/* Cart Summary */}
-      <div className="fixed bottom-0 left-0 w-full bg-white p-4 border-t border-gray-200">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center">
-            <ShoppingCart className="mr-2 h-5 w-5" />
-            <span>{cartItems.length} itens</span>
-            <span className="ml-4">Total: R$ {cartItems.reduce((total, item) => total + (item.product.price * item.quantity), 0).toFixed(2)}</span>
-          </div>
-          <Button onClick={() => setIsCheckoutOpen(true)}>Ver Carrinho</Button>
-        </div>
-      </div>
     </div>
   );
 };

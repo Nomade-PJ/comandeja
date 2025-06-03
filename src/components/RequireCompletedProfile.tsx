@@ -19,6 +19,13 @@ const RequireCompletedProfile: React.FC<RequireCompletedProfileProps> = ({ child
   useEffect(() => {
     // Verificar se o restaurante existe e se o perfil está completo
     if (restaurant) {
+      // Se for o restaurante mock, não exigir onboarding
+      if (restaurant.id === 'mock-restaurant-id') {
+        setShowOnboarding(false);
+        setIsLoading(false);
+        return;
+      }
+      
       const isNewRegistration = sessionStorage.getItem('is_new_registration') === 'true';
       const needsOnboarding = !restaurant.address || !restaurant.phone || isNewRegistration;
       

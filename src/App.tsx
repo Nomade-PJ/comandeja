@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
@@ -38,9 +38,8 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import CustomerRestaurantView from "./pages/CustomerRestaurantView";
 import CustomerOrderTracking from "./pages/CustomerOrderTracking";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import supabase from "./lib/supabase";
-import { useLocation } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
@@ -275,8 +274,10 @@ const App = () => (
 
 // Componente para redirecionar URLs diretas de slug para o formato correto /r/slug
 const RestaurantRedirect = () => {
+  const navigate = useNavigate();
   const location = useLocation();
   const slug = location.pathname.substring(1); // Remove o / inicial
+  const [isLoading, setIsLoading] = useState(true);
   
   // Verificar se o slug é um comando do sistema
   const systemRoutes = [
@@ -293,7 +294,18 @@ const RestaurantRedirect = () => {
   useEffect(() => {
     // Verificar se o restaurante existe antes de redirecionar
     const checkRestaurant = async () => {
+      setIsLoading(true);
       try {
+        console.log('Verificando restaurante pelo slug:', slug);
+        
+        // Verificar se é o restaurante demo "kipizzaria"
+        if (slug === 'kipizzaria') {
+          console.log('Redirecionando para o restaurante demo');
+          navigate(`/r/${slug}`, { replace: true });
+          return;
+        }
+        
+        // Verificar se existe na base de dados
         const { data, error } = await supabase
           .from('restaurants')
           .select('id')
@@ -301,18 +313,37 @@ const RestaurantRedirect = () => {
           .single();
           
         if (error || !data) {
-          console.error('Restaurante não encontrado:', error);
+          console.log('Restaurante não encontrado na base, mas redirecionando para modo demo:', error);
+          // Redirecionar para o formato correto mesmo se não existir
+          navigate(`/r/${slug}`, { replace: true });
+          return;
         }
+        
+        // Se o restaurante existir, redirecionar para o formato correto
+        navigate(`/r/${slug}`, { replace: true });
       } catch (err) {
         console.error('Erro ao verificar restaurante:', err);
+        // Mesmo em caso de erro, redirecionar para o formato correto
+        navigate(`/r/${slug}`, { replace: true });
+      } finally {
+        setIsLoading(false);
       }
     };
     
     checkRestaurant();
-  }, [slug]);
+  }, [slug, navigate]);
   
-  // Redirecionar para o formato correto
-  return <Navigate to={`/r/${slug}`} replace />;
+  // Exibir estado de carregamento enquanto verifica
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+  
+  // Este return não será alcançado normalmente por causa dos redirecionamentos
+  return null;
 };
 
 export default App;

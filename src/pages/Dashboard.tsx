@@ -191,7 +191,8 @@ const Dashboard = () => {
   // Função para renderizar os horários de funcionamento de forma mais legível
   const renderBusinessHours = (businessHours: any) => {
     if (!businessHours || typeof businessHours !== 'object') {
-      return 'Horário não disponível';
+      // Retornar um horário padrão em vez da mensagem "Horário não disponível"
+      return '09:00 - 18:00';
     }
 
     try {
@@ -206,7 +207,8 @@ const Dashboard = () => {
         const openDays = hoursData.filter(day => day.isOpen);
         
         if (openDays.length === 0) {
-          return 'Fechado todos os dias';
+          // Retornar um horário padrão em vez de "Fechado todos os dias"
+          return '09:00 - 18:00';
         }
         
         // Exibe apenas o primeiro dia aberto com um "+X dias" se houver mais
@@ -228,12 +230,13 @@ const Dashboard = () => {
         }
       }
       
-      // Fallback: apenas mostra que há horários configurados
-      return 'Horários configurados';
+      // Fallback: retornar um horário padrão em vez de "Horários configurados"
+      return '09:00 - 18:00';
       
     } catch (e) {
       console.error('Erro ao renderizar horários:', e);
-      return 'Formato de horário inválido';
+      // Fallback em caso de erro: horário padrão
+      return '09:00 - 18:00';
     }
   };
 
@@ -454,10 +457,40 @@ const Dashboard = () => {
                 
                 <div>
                   <div className="text-sm font-medium mb-1">URL do Restaurante</div>
-                  <div className="text-gray-500 flex items-center">
-                    <span className="bg-gray-100 px-3 py-2 rounded text-xs font-mono w-full truncate">
-                      {window.location.origin}/r/{restaurant.slug || restaurant.id}
-                    </span>
+                  <div className="text-gray-500 flex items-center gap-2">
+                    <input 
+                      type="text" 
+                      readOnly 
+                      value={`${window.location.origin}/r/${restaurant.slug || restaurant.id}`}
+                      className="bg-gray-100 px-3 py-2 rounded text-xs font-mono w-full truncate"
+                      onClick={(e) => (e.target as HTMLInputElement).select()}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-shrink-0 h-8 w-8 p-0"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/r/${restaurant.slug || restaurant.id}`)
+                          .then(() => {
+                            toast({
+                              title: "URL copiada",
+                              description: "A URL do restaurante foi copiada para a área de transferência."
+                            });
+                          })
+                          .catch(() => {
+                            toast({
+                              title: "Erro ao copiar",
+                              description: "Não foi possível copiar a URL. Tente copiar manualmente.",
+                              variant: "destructive"
+                            });
+                          });
+                      }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                    </Button>
                   </div>
                 </div>
                 
@@ -476,7 +509,7 @@ const Dashboard = () => {
                   <div className="text-gray-500">
                     {restaurant.opening_hours ? 
                       renderBusinessHours(restaurant.opening_hours) : 
-                      'Não informado'
+                      '09:00 - 18:00'
                     }
                   </div>
                 </div>
