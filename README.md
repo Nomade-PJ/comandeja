@@ -1,6 +1,6 @@
 # ComandeJá - Sistema de Gerenciamento para Restaurantes
 
-![ComandeJá Logo](public/placeholder.svg)
+<img src="public/placeholder.svg" alt="ComandeJá - Sistema de Gerenciamento para Restaurantes" width="600" />
 
 O ComandeJá é um sistema SaaS (Software as a Service) completo para gerenciamento de restaurantes e pedidos online. Permite que restaurantes criem cardápios digitais, aceitem pedidos e gerenciem suas operações através de um dashboard intuitivo.
 
