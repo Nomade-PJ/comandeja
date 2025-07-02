@@ -43,7 +43,6 @@ export const useCategories = () => {
         .order('display_order');
 
       if (error) {
-        console.error('Error fetching categories:', error);
         toast({
           title: "Erro",
           description: "Erro ao carregar categorias",
@@ -53,7 +52,6 @@ export const useCategories = () => {
         setCategories(data || []);
       }
     } catch (error) {
-      console.error('Error:', error);
     } finally {
       setLoading(false);
     }

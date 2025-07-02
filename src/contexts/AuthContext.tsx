@@ -44,7 +44,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Erro ao verificar perfil:', error);
         return;
       }
 
@@ -64,11 +63,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
 
         if (insertError) {
-          console.error('Erro ao criar perfil:', insertError);
         }
       }
     } catch (err) {
-      console.error('Erro ao verificar/criar perfil:', err);
     }
   };
 
@@ -92,7 +89,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setupSessionMonitoring();
         }
       } catch (error: any) {
-        console.error('Erro ao obter sessão:', error.message);
         setError(error);
       } finally {
         setLoading(false);
@@ -128,7 +124,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) throw error;
       return { error: null };
     } catch (error: any) {
-      console.error('Erro de login:', error.message);
       setError(error);
       return { error };
     } finally {
@@ -143,7 +138,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) throw error;
       return { error: null };
     } catch (error: any) {
-      console.error('Erro de registro:', error.message);
       setError(error);
       return { error };
     } finally {
@@ -156,7 +150,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       await signOut();
     } catch (error: any) {
-      console.error('Erro ao sair:', error.message);
       setError(error);
     } finally {
       setLoading(false);

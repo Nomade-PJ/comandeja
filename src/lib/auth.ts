@@ -111,9 +111,6 @@ export function resetSessionTimers() {
 }
 
 export const signUp = async (email: string, password: string, fullName: string, role: string = 'restaurant_owner') => {
-  console.log('Starting signup process for:', email);
-  console.log('User data:', { fullName, role });
-  
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -125,25 +122,16 @@ export const signUp = async (email: string, password: string, fullName: string, 
     }
   });
   
-  console.log('Signup response:', { data, error });
   return { error };
 };
 
 export const signIn = async (email: string, password: string) => {
-  console.log("auth.ts - Iniciando processo de login para:", email);
-  
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password
   });
   
   if (!error) {
-    console.log("auth.ts - Login bem-sucedido, dados do usuário:", {
-      id: data?.user?.id,
-      email: data?.user?.email,
-      metadata: data?.user?.user_metadata,
-      role: data?.user?.user_metadata?.role,
-    });
     resetSessionTimers();
   } else {
     console.error("auth.ts - Erro no login:", error);

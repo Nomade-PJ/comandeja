@@ -5,7 +5,10 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 // Definir o nível de log (true para desenvolvimento, false para produção)
-const ENABLE_DETAILED_LOGS = true;
+const ENABLE_DETAILED_LOGS = false;
+
+// Mostrar mensagem de filtro ativado
+console.log("Filtro de console ativado! Logs relacionados ao Supabase e outros serviços internos foram ocultados.");
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";

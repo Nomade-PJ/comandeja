@@ -21,26 +21,24 @@ interface DashboardOverviewProps {
 const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
   const { restaurant, loading: restaurantLoading, error: restaurantError } = useRestaurant();
   const { loading: statsLoading, stats, error: statsError, refreshStats } = useDashboardStats();
-  const [showConnectionError, setShowConnectionError] = useState(false);
 
-  // Registrar handler de erro para o serviço de realtime
+  // Registrar handler de erro para o serviço de realtime e tentar reconectar silenciosamente
   useEffect(() => {
-    if (onRealtimeError) {
-      const removeHandler = realtimeService.onError(() => {
-        // Apenas notificar erro de conexão se os dados já estiverem carregados
-        if (!restaurantLoading && !statsLoading) {
-          setShowConnectionError(true);
-          onRealtimeError();
-        }
-      });
-      
-      return () => {
-        removeHandler();
-      };
-    }
-  }, [onRealtimeError, restaurantLoading, statsLoading]);
+    const handleReconnect = () => {
+      // Tentar reconectar silenciosamente sem mostrar erro ao usuário
+      setTimeout(() => {
+        refreshStats?.();
+      }, 2000);
+    };
+    
+    const removeHandler = realtimeService.onError(handleReconnect);
+    
+    return () => {
+      removeHandler();
+    };
+  }, [refreshStats]);
 
-  // Detectar possíveis problemas com os dados
+  // Detectar possíveis problemas com os dados e tentar reconectar silenciosamente
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
 
@@ -48,8 +46,8 @@ const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
     if (!restaurantLoading && !statsLoading) {
       timeoutId = setTimeout(() => {
         if (!stats || (stats.todaySales.value === formatCurrency(0) && stats.todayOrders.value === '0')) {
-          setShowConnectionError(true);
-          onRealtimeError?.();
+          // Tentar atualizar os dados silenciosamente
+          refreshStats?.();
         }
       }, 15000); // Aumentado para 15 segundos
     }
@@ -59,7 +57,7 @@ const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
         clearTimeout(timeoutId);
       }
     };
-  }, [restaurantLoading, statsLoading, stats, onRealtimeError]);
+  }, [restaurantLoading, statsLoading, stats, refreshStats]);
 
   // Mostrar tela de carregamento enquanto carrega dados iniciais
   if (restaurantLoading || statsLoading) {
@@ -104,25 +102,6 @@ const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
 
   return (
     <div className="space-y-6">
-      {showConnectionError && (
-        <Alert className="border-yellow-200 bg-yellow-50">
-          <WifiOff className="h-5 w-5 text-yellow-600" />
-          <AlertTitle className="text-yellow-800">Problemas na conexão</AlertTitle>
-          <AlertDescription className="text-yellow-700">
-            <p className="mb-2">Estamos com dificuldades para obter dados em tempo real. Alguns dados podem estar desatualizados.</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="bg-yellow-100 border-yellow-300 text-yellow-800 hover:bg-yellow-200"
-              onClick={() => window.location.reload()}
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Reconectar
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Bem-vindo de volta!</h2>

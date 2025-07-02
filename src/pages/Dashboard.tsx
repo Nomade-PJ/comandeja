@@ -7,18 +7,14 @@ import DashboardOverview from "@/components/dashboard/DashboardOverview";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, AlertTriangle, WifiOff, RefreshCw } from "lucide-react";
+import { WifiOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { realtimeService } from "@/integrations/supabase/realtimeService";
 
 const Dashboard = () => {
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user, loading: isAuthLoading } = useAuth();
   const { loading: isRestaurantLoading, restaurant } = useRestaurant();
   const navigate = useNavigate();
-  const [realtimeError, setRealtimeError] = useState(false);
-  const [retrying, setRetrying] = useState(false);
   const [offlineMode, setOfflineMode] = useState(false);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
   useEffect(() => {
     if (!isAuthLoading && !user) {
@@ -30,10 +26,10 @@ const Dashboard = () => {
   useEffect(() => {
     const handleOnline = () => {
       setOfflineMode(false);
-      // Quando voltar online, tentar reconectar automaticamente
-      if (realtimeError) {
-        handleReload();
-      }
+      // Quando voltar online, tentar reconectar automaticamente sem mostrar mensagem
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     };
     const handleOffline = () => setOfflineMode(true);
 
@@ -47,20 +43,7 @@ const Dashboard = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [realtimeError]);
-
-  // Função para lidar com erros de conexão Realtime
-  const handleReload = () => {
-    setRetrying(true);
-    setReconnectAttempts(prev => prev + 1);
-    
-    // Implementar backoff exponencial para reconexão
-    const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), 10000); // Máximo de 10 segundos
-    
-    setTimeout(() => {
-      window.location.reload();
-    }, delay);
-  };
+  }, []);
 
   // Mostrar tela de carregamento enquanto carrega usuário e dados do restaurante
   if (isAuthLoading || (user && isRestaurantLoading)) {
@@ -109,35 +92,8 @@ const Dashboard = () => {
               </Alert>
             )}
 
-            {realtimeError && !offlineMode && (
-              <Alert className="mb-4 border-yellow-200 bg-yellow-50">
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <AlertTitle className="text-yellow-800">Problemas na conexão</AlertTitle>
-                <AlertDescription className="text-yellow-700 flex items-center justify-between">
-                  <span>Estamos com dificuldades para obter dados em tempo real. Alguns dados podem estar desatualizados.</span>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="bg-yellow-100 border-yellow-300 text-yellow-800 hover:bg-yellow-200"
-                    onClick={handleReload}
-                    disabled={retrying}
-                  >
-                    {retrying ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Reconectando...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Reconectar
-                      </>
-                    )}
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
-            <DashboardOverview onRealtimeError={() => setRealtimeError(true)} />
+            {/* Alerta de problemas na conexão removido */}
+            <DashboardOverview />
           </div>
         </main>
       </div>

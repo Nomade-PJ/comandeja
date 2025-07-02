@@ -51,17 +51,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             .maybeSingle();
             
           if (error) {
-            console.error('Erro ao buscar restaurante:', error);
             return;
           }
           
           if (data) {
             setCurrentRestaurantId(data.id);
             setCurrentRestaurantName(data.name);
-            console.log(`Restaurante atual: ${data.name} (ID: ${data.id})`);
           }
         } catch (error) {
-          console.error('Erro:', error);
+          // Remover log de erro
         }
       }
     };

@@ -51,7 +51,6 @@ export const useProducts = () => {
         .order('display_order', { ascending: true });
       
       if (error) {
-        console.error('Erro ao buscar produtos:', error);
         return [];
       }
       
@@ -86,7 +85,6 @@ export const useProducts = () => {
         .single();
       
       if (error) {
-        console.error('Erro ao criar produto:', error);
         toast({
           title: "Erro",
           description: `Falha ao criar produto: ${error.message}`,
@@ -105,7 +103,6 @@ export const useProducts = () => {
       
       return data;
     } catch (error: any) {
-      console.error('Erro inesperado ao criar produto:', error);
       toast({
         title: "Erro",
         description: error.message || "Ocorreu um erro inesperado",
@@ -122,15 +119,11 @@ export const useProducts = () => {
     setLoading(true);
     
     try {
-      console.log('Atualizando produto:', id, 'com dados:', productData);
-      
       // Certificar-se de que o campo image_url seja explicitamente definido, mesmo se for null
       const updateData = {
         ...productData,
         image_url: productData.image_url === undefined ? undefined : productData.image_url
       };
-      
-      console.log('Dados de atualização preparados:', updateData);
       
       const { data, error } = await supabase
         .from('products')
@@ -140,7 +133,6 @@ export const useProducts = () => {
         .single();
       
       if (error) {
-        console.error('Erro ao atualizar produto:', error);
         toast({
           title: "Erro",
           description: `Falha ao atualizar produto: ${error.message}`,
@@ -159,7 +151,6 @@ export const useProducts = () => {
       
       return data;
     } catch (error: any) {
-      console.error('Erro inesperado ao atualizar produto:', error);
       toast({
         title: "Erro",
         description: error.message || "Ocorreu um erro inesperado",
@@ -182,7 +173,6 @@ export const useProducts = () => {
         .eq('id', id);
       
       if (error) {
-        console.error('Erro ao excluir produto:', error);
         toast({
           title: "Erro",
           description: `Falha ao excluir produto: ${error.message}`,
@@ -201,7 +191,6 @@ export const useProducts = () => {
       
       return true;
     } catch (error: any) {
-      console.error('Erro inesperado ao excluir produto:', error);
       toast({
         title: "Erro",
         description: error.message || "Ocorreu um erro inesperado",

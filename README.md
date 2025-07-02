@@ -207,7 +207,7 @@ O projeto foi projetado para ser escalável:
   - Adicionada a rota para `DashboardCategories` no `App.tsx` que estava faltando
 
 - **Limpeza de Dependências**:
-  - Removidas referências ao Lovable de:
+  - Removidas referências e dependências desnecessárias de:
     - `index.html` (metadados e descrições)
     - `vite.config.ts` (plugins)
     - `package.json` (dependências)

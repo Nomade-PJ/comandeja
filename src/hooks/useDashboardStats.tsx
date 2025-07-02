@@ -378,8 +378,7 @@ export function useDashboardStats() {
       'orders',
       restaurant.id,
       () => {
-        console.log('Atualização em tempo real detectada na tabela orders');
-        // Atualizar pedidos recentes e estatísticas
+        // Atualizar pedidos recentes e estatísticas silenciosamente
         fetchRecentOrders();
         fetchDashboardStats();
       }

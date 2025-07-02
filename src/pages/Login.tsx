@@ -52,12 +52,10 @@ const Login = () => {
   // Verificar se o usuário já está autenticado e redirecionar com base no papel
   useEffect(() => {
     const checkUserAndRedirect = async () => {
-      console.log("checkUserAndRedirect - Iniciando verificação", { user, isAuthLoading });
       if (!user || isAuthLoading) return;
 
       // Verificar se estamos tentando acessar diretamente a página de perfil
       const fromProfile = locationState?.from?.pathname === '/perfil' && locationState?.from?.search?.includes('direct=true');
-      console.log("checkUserAndRedirect - Estado da localização:", { locationState, fromProfile });
       
       // Se estamos tentando acessar diretamente a página de perfil, redirecionar para lá
       if (fromProfile) {
@@ -66,7 +64,6 @@ const Login = () => {
       }
 
       try {
-        console.log("checkUserAndRedirect - Buscando perfil para o usuário:", user.id);
         // Obter o papel (role) do usuário
         const { data, error } = await supabase
           .from('profiles')
@@ -78,9 +75,7 @@ const Login = () => {
           console.error('Erro ao verificar perfil:', error);
           
           // Se houver erro ao buscar o perfil, verificar se há informações de papel nos metadados do usuário
-          console.log("checkUserAndRedirect - Verificando papel nos metadados do usuário");
           const userRole = user.user_metadata?.role || 'customer';
-          console.log("checkUserAndRedirect - Papel encontrado nos metadados:", userRole);
           
           // Usar o papel encontrado nos metadados para determinar o redirecionamento
           if (userRole === 'customer') {
@@ -106,15 +101,12 @@ const Login = () => {
           return;
         }
 
-        console.log("checkUserAndRedirect - Dados do perfil:", data);
         // Verificar o tipo de usuário e redirecionar adequadamente
         const userRole = data?.role;
-        console.log("checkUserAndRedirect - Papel do usuário:", userRole);
         
         if (userRole === 'customer') {
           // Se for cliente, verificar restaurante registrado nos metadados
           const registeredRestaurantId = user.user_metadata?.registered_restaurant_id;
-          console.log("checkUserAndRedirect - ID do restaurante registrado:", registeredRestaurantId);
           
           if (registeredRestaurantId) {
             const { data: restaurant } = await supabase
@@ -123,26 +115,21 @@ const Login = () => {
               .eq('id', registeredRestaurantId)
               .single();
               
-            console.log("checkUserAndRedirect - Dados do restaurante:", restaurant);
             if (restaurant?.slug) {
-              console.log(`checkUserAndRedirect - Redirecionando para /restaurante/${restaurant.slug}`);
               navigate(`/restaurante/${restaurant.slug}`);
               return;
             }
           }
           
           // Fallback para home se não encontrar restaurante
-          console.log("checkUserAndRedirect - Redirecionando para home (/)");
           navigate('/');
         } else {
           // Se for admin ou dono de restaurante, vai para o dashboard
-          console.log("checkUserAndRedirect - Redirecionando para o dashboard");
           navigate('/dashboard');
         }
       } catch (err) {
         console.error('Erro ao verificar perfil:', err);
         // Em caso de erro, manda para o dashboard como fallback
-        console.log("checkUserAndRedirect - Erro, redirecionando para o dashboard");
         navigate('/dashboard');
       }
     };

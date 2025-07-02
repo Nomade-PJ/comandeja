@@ -74,7 +74,6 @@ const DashboardProducts = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Searching for:", searchQuery);
   };
 
   const filteredProducts = products.filter(product =>

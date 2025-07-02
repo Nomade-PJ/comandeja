@@ -41,8 +41,6 @@ const RestaurantView = () => {
 
   const fetchRestaurantData = async () => {
     try {
-      console.log('Buscando restaurante com slug:', slug);
-      
       // Buscar dados do restaurante
       const { data: restaurantData, error: restaurantError } = await supabase
         .from('restaurants')
@@ -52,17 +50,14 @@ const RestaurantView = () => {
         .maybeSingle();
 
       if (restaurantError) {
-        console.error('Error fetching restaurant:', restaurantError);
         return;
       }
 
       if (!restaurantData) {
-        console.log('Restaurante não encontrado para slug:', slug);
         setLoading(false);
         return;
       }
 
-      console.log('Restaurante encontrado:', restaurantData);
       setRestaurant(restaurantData);
 
       // Buscar categorias
@@ -74,9 +69,7 @@ const RestaurantView = () => {
         .order('display_order');
 
       if (categoriesError) {
-        console.error('Error fetching categories:', categoriesError);
       } else {
-        console.log('Categorias encontradas:', categoriesData);
         setCategories(categoriesData || []);
       }
 
@@ -89,13 +82,10 @@ const RestaurantView = () => {
         .order('display_order');
 
       if (productsError) {
-        console.error('Error fetching products:', productsError);
       } else {
-        console.log('Produtos encontrados:', productsData);
         setProducts(productsData || []);
       }
     } catch (error) {
-      console.error('Error:', error);
     } finally {
       setLoading(false);
     }
@@ -129,8 +119,6 @@ const RestaurantView = () => {
       e.stopPropagation();
     }
     
-    console.log('Adicionando ao carrinho:', product.name, 'quantidade:', quantity);
-    
     // Se a quantidade for 0, não adiciona ao carrinho
     if (quantity <= 0) return;
     
@@ -144,7 +132,6 @@ const RestaurantView = () => {
           .single();
           
         if (error) {
-          console.error('Erro ao buscar perfil do usuário:', error);
           toast({
             title: "Erro",
             description: "Não foi possível verificar seu perfil",
@@ -164,7 +151,6 @@ const RestaurantView = () => {
           return;
         }
       } catch (error) {
-        console.error('Erro ao verificar perfil:', error);
         return;
       }
     }
@@ -179,8 +165,6 @@ const RestaurantView = () => {
         restaurant_id: product.restaurant_id
       });
     }
-    
-    console.log('Item adicionado ao carrinho', quantity, 'vezes');
     
     // Reseta a quantidade do produto
     setProductQuantities(prev => ({
@@ -211,7 +195,6 @@ const RestaurantView = () => {
           .single();
           
         if (error) {
-          console.error('Erro ao buscar perfil do usuário:', error);
           toast({
             title: "Erro",
             description: "Não foi possível verificar seu perfil",
@@ -232,7 +215,6 @@ const RestaurantView = () => {
           return;
         }
       } catch (error) {
-        console.error('Erro ao verificar perfil:', error);
         return;
       }
     }

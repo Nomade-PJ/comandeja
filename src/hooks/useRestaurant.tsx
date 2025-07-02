@@ -202,8 +202,6 @@ export const useRestaurant = () => {
     if (!restaurant) return null;
 
     try {
-      console.log('Atualizando restaurante com dados:', updates);
-
       const { data, error } = await supabase
         .from('restaurants')
         .update(updates)
@@ -212,7 +210,6 @@ export const useRestaurant = () => {
         .single();
 
       if (error) {
-        console.error('Error updating restaurant:', error);
         toast({
           title: "Erro",
           description: "Erro ao atualizar restaurante: " + error.message,
@@ -229,7 +226,6 @@ export const useRestaurant = () => {
       setRestaurant(data);
       return data;
     } catch (error) {
-      console.error('Error:', error);
       return null;
     }
   };
