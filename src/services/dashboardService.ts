@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, logDebug } from '@/integrations/supabase/client';
 
 /**
  * Atualiza as estatísticas para um pedido específico usando a função segura do banco de dados
@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export async function fixDashboardStatsForOrder(orderId: string) {
   try {
-    console.log(`Atualizando estatísticas para o pedido: ${orderId}`);
+    logDebug(`Atualizando estatísticas para o pedido: ${orderId}`);
     
     // Usar as-any para ignorar erros de tipagem na função RPC personalizada
     const { data, error } = await (supabase as any).rpc('fix_dashboard_stats_for_order', {
@@ -19,7 +19,7 @@ export async function fixDashboardStatsForOrder(orderId: string) {
       return { success: false, error };
     }
     
-    console.log('Resultado da atualização via RPC:', data);
+    logDebug('Resultado da atualização via RPC:', data);
     // Corrigir comparação de tipos: o resultado da função RPC é boolean
     return { success: Boolean(data), data };
   } catch (error) {
@@ -40,7 +40,7 @@ export async function updateDashboardStatistics(restaurantId: string, date?: Dat
     const targetDate = date || new Date();
     const dateStr = targetDate.toISOString().split('T')[0];
     
-    console.log(`Atualizando estatísticas para restaurante ${restaurantId} na data ${dateStr}`);
+    logDebug(`Atualizando estatísticas para restaurante ${restaurantId} na data ${dateStr}`);
     
     // 1. Obter dados dos pedidos para a data específica
     const { data: ordersData, error: ordersError } = await supabase

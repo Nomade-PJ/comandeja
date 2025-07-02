@@ -4,6 +4,8 @@ import type { Database } from './types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Definir o nível de log (true para desenvolvimento, false para produção)
+const ENABLE_DETAILED_LOGS = true;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -18,28 +20,55 @@ const supabaseOptions = {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    storageKey: 'comandeja_auth_token',
+    storage: localStorage,
   },
   realtime: {
     params: {
-      eventsPerSecond: 5, // Aumentado para permitir mais eventos por segundo
+      eventsPerSecond: 2, // Reduzido para evitar throttling
     },
     heartbeat: {
-      interval: 8000, // Reduzido para 8 segundos para detectar desconexões mais rapidamente
-      maxRetries: 10,   // Aumentado para mais tentativas de reconexão
+      interval: 2000, // Reduzido para detectar desconexões mais rápido
+      maxRetries: 30, // Aumentado número de tentativas
     },
     reconnect: {
-      delay: 1000,    // Espere 1 segundo para tentar reconectar
-      maxRetries: 10,   // Aumentado para mais tentativas de reconexão
-      timed: true,    // Escalonar o tempo de espera entre tentativas
+      delay: 500, // Reduzido delay inicial
+      maxRetries: 30, // Aumentado número de tentativas
+      retryInterval: 500,
+      timed: true,
     },
+    timeout: 30000, // Reduzido para 30 segundos
   },
   global: {
-    fetch: fetch.bind(globalThis), // Usar o fetch global para evitar problemas em alguns browsers
+    fetch: fetch.bind(globalThis),
     headers: {
       'X-Client-Info': 'comandeja-web',
+      'X-Client-Version': '1.0.0',
     },
   },
-  persistSession: true, // Persistir a sessão no localStorage
+  persistSession: true,
+  // Logs detalhados para debug
+  logger: {
+    error: (msg: string) => {
+      console.error('[Supabase Error]:', msg);
+    },
+    warn: (msg: string) => {
+      console.warn('[Supabase Warning]:', msg);
+    },
+    info: ENABLE_DETAILED_LOGS ? (msg: string) => {
+      console.info('[Supabase Info]:', msg);
+    } : () => {},
+    debug: ENABLE_DETAILED_LOGS ? (msg: string) => {
+      console.debug('[Supabase Debug]:', msg);
+    } : () => {},
+  }
 };
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, supabaseOptions);
+
+// Função utilitária para logging condicional (usado nos outros arquivos)
+export function logDebug(...args: any[]) {
+  if (ENABLE_DETAILED_LOGS) {
+    console.log('[Comandeja Debug]:', ...args);
+  }
+}

@@ -7,46 +7,122 @@ import RecentOrders from "@/components/dashboard/RecentOrders";
 import SalesChart from "@/components/dashboard/SalesChart";
 import TopProducts from "@/components/dashboard/TopProducts";
 import { useRestaurant } from "@/hooks/useRestaurant";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { formatCurrency } from "@/lib/utils";
 import { realtimeService } from "@/integrations/supabase/realtimeService";
+import { Loader2, AlertTriangle, WifiOff, RefreshCw } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface DashboardOverviewProps {
   onRealtimeError?: () => void;
 }
 
 const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
-  const { restaurant, loading } = useRestaurant();
-  const { loading: statsLoading, stats } = useDashboardStats();
+  const { restaurant, loading: restaurantLoading, error: restaurantError } = useRestaurant();
+  const { loading: statsLoading, stats, error: statsError, refreshStats } = useDashboardStats();
+  const [showConnectionError, setShowConnectionError] = useState(false);
 
   // Registrar handler de erro para o serviço de realtime
   useEffect(() => {
     if (onRealtimeError) {
       const removeHandler = realtimeService.onError(() => {
-        onRealtimeError();
+        // Apenas notificar erro de conexão se os dados já estiverem carregados
+        if (!restaurantLoading && !statsLoading) {
+          setShowConnectionError(true);
+          onRealtimeError();
+        }
       });
       
       return () => {
         removeHandler();
       };
     }
-  }, [onRealtimeError]);
+  }, [onRealtimeError, restaurantLoading, statsLoading]);
 
   // Detectar possíveis problemas com os dados
   useEffect(() => {
-    // Verificar se houve erro ao carregar os dados por 10 segundos
-    const timeout = setTimeout(() => {
-      if (statsLoading || !stats || (stats.todaySales.value === formatCurrency(0) && stats.todayOrders.value === '0')) {
-        onRealtimeError?.();
-      }
-    }, 10000);
+    let timeoutId: NodeJS.Timeout;
 
-    return () => clearTimeout(timeout);
-  }, [statsLoading, stats, onRealtimeError]);
+    // Só iniciar o timeout após o carregamento inicial
+    if (!restaurantLoading && !statsLoading) {
+      timeoutId = setTimeout(() => {
+        if (!stats || (stats.todaySales.value === formatCurrency(0) && stats.todayOrders.value === '0')) {
+          setShowConnectionError(true);
+          onRealtimeError?.();
+        }
+      }, 15000); // Aumentado para 15 segundos
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [restaurantLoading, statsLoading, stats, onRealtimeError]);
+
+  // Mostrar tela de carregamento enquanto carrega dados iniciais
+  if (restaurantLoading || statsLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-brand-600 mb-4"></div>
+        <h2 className="text-xl font-medium text-gray-800 mb-2">Carregando dashboard</h2>
+        <p className="text-sm text-gray-500">
+          {restaurantLoading 
+            ? "Carregando dados do restaurante..." 
+            : statsLoading 
+              ? "Carregando estatísticas..." 
+              : "Preparando sistema..."}
+        </p>
+      </div>
+    );
+  }
+
+  // Mostrar mensagem de erro se houver falha no carregamento
+  if (restaurantError || statsError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <Alert className="max-w-lg mx-auto border-red-200 bg-red-50">
+          <AlertTriangle className="h-5 w-5 text-red-600" />
+          <AlertTitle className="text-red-800">Erro ao carregar dados</AlertTitle>
+          <AlertDescription className="text-red-700">
+            <p className="mb-4">Ocorreu um erro ao carregar os dados do dashboard. Por favor, tente novamente.</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-red-100 border-red-300 text-red-800 hover:bg-red-200"
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Tentar novamente
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {showConnectionError && (
+        <Alert className="border-yellow-200 bg-yellow-50">
+          <WifiOff className="h-5 w-5 text-yellow-600" />
+          <AlertTitle className="text-yellow-800">Problemas na conexão</AlertTitle>
+          <AlertDescription className="text-yellow-700">
+            <p className="mb-2">Estamos com dificuldades para obter dados em tempo real. Alguns dados podem estar desatualizados.</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-yellow-100 border-yellow-300 text-yellow-800 hover:bg-yellow-200"
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reconectar
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Bem-vindo de volta!</h2>

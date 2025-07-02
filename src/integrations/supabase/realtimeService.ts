@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase, logDebug } from './client';
 import { RealtimeChannel, RealtimeChannelOptions } from '@supabase/supabase-js';
 
 // Singleton para gerenciar canais Realtime do Supabase
@@ -8,9 +8,9 @@ class RealtimeService {
   private errorHandlers: Set<() => void>;
   private connectionStatus: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' = 'DISCONNECTED';
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-  private maxReconnectAttempts = 10;
+  private maxReconnectAttempts = 15;
   private currentReconnectAttempt = 0;
-  private reconnectDelay = 2000;
+  private reconnectDelay = 1000;
 
   constructor() {
     this.channels = new Map();
@@ -99,6 +99,7 @@ class RealtimeService {
           filter: `restaurant_id=eq.${restaurantId}`,
         },
         (payload) => {
+          logDebug(`Recebido evento de ${table}:`, payload);
           try {
             // Notificar todos os listeners
             this.listeners.get(channelId)?.forEach(listener => listener());
@@ -108,7 +109,7 @@ class RealtimeService {
         }
       )
       .subscribe((status, err) => {
-        console.log(`Subscription to ${table} for restaurant ${restaurantId}: ${status}`);
+        logDebug(`Status da subscrição ${channelId}: ${status}`);
         
         if (err) {
           console.error(`Erro na subscrição ${channelId}:`, err);
@@ -119,18 +120,22 @@ class RealtimeService {
         }
         
         if (status === 'SUBSCRIBED') {
+          logDebug(`Canal ${channelId} conectado com sucesso`);
           this.connectionStatus = 'CONNECTED';
           this.currentReconnectAttempt = 0;
         } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
           console.error(`Canal ${channelId} com erro: ${status}`);
           this.connectionStatus = 'DISCONNECTED';
+
           this.notifyError();
           this.attemptReconnect();
         } else if (status === 'CLOSED') {
-          console.warn(`Canal ${channelId} fechado`);
+          logDebug(`Canal ${channelId} fechado`);
           this.connectionStatus = 'DISCONNECTED';
-          this.notifyError();
-          this.attemptReconnect();
+          if (this.listeners.has(channelId) && this.listeners.get(channelId)!.size > 0) {
+            this.notifyError();
+            this.attemptReconnect();
+          }
         }
       });
     
@@ -160,7 +165,7 @@ class RealtimeService {
     this.currentReconnectAttempt++;
     const delay = this.reconnectDelay * Math.pow(1.5, this.currentReconnectAttempt - 1);
     
-    console.log(`Tentando reconectar em ${delay}ms (tentativa ${this.currentReconnectAttempt}/${this.maxReconnectAttempts})`);
+    logDebug(`Tentando reconectar em ${delay}ms (tentativa ${this.currentReconnectAttempt}/${this.maxReconnectAttempts})`);
     
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectAll();
@@ -171,7 +176,7 @@ class RealtimeService {
    * Reconecta todos os canais
    */
   private reconnectAll() {
-    console.log('Reconectando todos os canais...');
+    logDebug('Reconectando todos os canais...');
     
     // Armazenar configurações dos canais atuais
     const channelsConfig: Array<{id: string, table: string, restaurantId: string}> = [];
@@ -205,7 +210,7 @@ class RealtimeService {
    * Manipula evento de conexão online
    */
   private handleOnline() {
-    console.log('Navegador online, reconectando canais...');
+    logDebug('Navegador online, reconectando canais...');
     this.reconnectAll();
   }
 
@@ -213,7 +218,7 @@ class RealtimeService {
    * Manipula evento de conexão offline
    */
   private handleOffline() {
-    console.log('Navegador offline, desconectando canais...');
+    logDebug('Navegador offline, desconectando canais...');
     this.connectionStatus = 'DISCONNECTED';
     this.notifyError();
   }

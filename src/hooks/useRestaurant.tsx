@@ -23,7 +23,10 @@ interface Restaurant {
 export const useRestaurant = () => {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
 
   useEffect(() => {
     fetchRestaurant();
@@ -32,14 +35,18 @@ export const useRestaurant = () => {
   const fetchRestaurant = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      setError(null);
+      
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        throw new Error('Erro ao obter usuário autenticado');
+      }
       
       if (!user) {
         setLoading(false);
         return;
       }
-
-      console.log('Buscando restaurante para usuário:', user.id);
 
       const { data, error } = await supabase
         .from('restaurants')
@@ -47,19 +54,35 @@ export const useRestaurant = () => {
         .eq('owner_id', user.id)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching restaurant:', error);
-        toast({
-          title: "Erro",
-          description: "Erro ao carregar dados do restaurante",
-          variant: "destructive"
-        });
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Não encontrou restaurante - isso é normal para novos usuários
+          setRestaurant(null);
+        } else {
+          throw error;
+        }
       } else {
-        console.log('Restaurante encontrado:', data);
         setRestaurant(data);
+        setRetryCount(0); // Resetar contagem de tentativas após sucesso
       }
     } catch (error) {
-      console.error('Error:', error);
+      setError(error as Error);
+      console.error('Erro ao carregar restaurante:', error);
+      
+      // Tentar novamente se ainda não atingiu o limite
+      if (retryCount < MAX_RETRIES) {
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff, max 5s
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          fetchRestaurant();
+        }, delay);
+      } else {
+        toast({
+          title: "Erro de conexão",
+          description: "Não foi possível carregar os dados do restaurante. Tente novamente mais tarde.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -211,11 +234,12 @@ export const useRestaurant = () => {
     }
   };
 
-  return { 
-    restaurant, 
-    loading, 
-    refetch: fetchRestaurant, 
+  return {
+    restaurant,
+    loading,
+    error,
+    refetch: fetchRestaurant,
     createRestaurant,
-    updateRestaurant 
+    updateRestaurant,
   };
 };

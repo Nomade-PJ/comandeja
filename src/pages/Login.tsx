@@ -3,12 +3,17 @@ import { Link, useNavigate, useLocation, Location } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Mail, Lock } from "lucide-react";
+import { ArrowLeft, Mail, Lock, AlertCircle, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema } from "@/lib/validations";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useSecurity } from "@/hooks/useSecurity";
 
 // Definir interface para o estado de localização
 interface LocationState {
@@ -19,13 +24,27 @@ interface LocationState {
   message?: string;
 }
 
+// Interface para o formulário de login
+interface LoginFormValues {
+  email: string;
+  password: string;
+}
+
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, user, isLoading: isAuthLoading } = useAuth();
+  const { signIn, user, loading: isAuthLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { csrfToken } = useSecurity();
+  
+  // Configurar o formulário com validação Zod
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: ""
+    }
+  });
   
   // Obter o estado da localização
   const locationState = location.state as LocationState | null;
@@ -33,10 +52,12 @@ const Login = () => {
   // Verificar se o usuário já está autenticado e redirecionar com base no papel
   useEffect(() => {
     const checkUserAndRedirect = async () => {
+      console.log("checkUserAndRedirect - Iniciando verificação", { user, isAuthLoading });
       if (!user || isAuthLoading) return;
 
       // Verificar se estamos tentando acessar diretamente a página de perfil
       const fromProfile = locationState?.from?.pathname === '/perfil' && locationState?.from?.search?.includes('direct=true');
+      console.log("checkUserAndRedirect - Estado da localização:", { locationState, fromProfile });
       
       // Se estamos tentando acessar diretamente a página de perfil, redirecionar para lá
       if (fromProfile) {
@@ -45,6 +66,7 @@ const Login = () => {
       }
 
       try {
+        console.log("checkUserAndRedirect - Buscando perfil para o usuário:", user.id);
         // Obter o papel (role) do usuário
         const { data, error } = await supabase
           .from('profiles')
@@ -54,15 +76,45 @@ const Login = () => {
 
         if (error) {
           console.error('Erro ao verificar perfil:', error);
+          
+          // Se houver erro ao buscar o perfil, verificar se há informações de papel nos metadados do usuário
+          console.log("checkUserAndRedirect - Verificando papel nos metadados do usuário");
+          const userRole = user.user_metadata?.role || 'customer';
+          console.log("checkUserAndRedirect - Papel encontrado nos metadados:", userRole);
+          
+          // Usar o papel encontrado nos metadados para determinar o redirecionamento
+          if (userRole === 'customer') {
+            // Redirecionamento para cliente
+            const registeredRestaurantId = user.user_metadata?.registered_restaurant_id;
+            if (registeredRestaurantId) {
+              const { data: restaurant } = await supabase
+                .from('restaurants')
+                .select('slug')
+                .eq('id', registeredRestaurantId)
+                .single();
+                
+              if (restaurant?.slug) {
+                navigate(`/restaurante/${restaurant.slug}`);
+                return;
+              }
+            }
+            navigate('/');
+          } else {
+            // Para admin ou restaurant_owner, redirecionar para o dashboard
+            navigate('/dashboard');
+          }
           return;
         }
 
+        console.log("checkUserAndRedirect - Dados do perfil:", data);
         // Verificar o tipo de usuário e redirecionar adequadamente
         const userRole = data?.role;
+        console.log("checkUserAndRedirect - Papel do usuário:", userRole);
         
         if (userRole === 'customer') {
           // Se for cliente, verificar restaurante registrado nos metadados
           const registeredRestaurantId = user.user_metadata?.registered_restaurant_id;
+          console.log("checkUserAndRedirect - ID do restaurante registrado:", registeredRestaurantId);
           
           if (registeredRestaurantId) {
             const { data: restaurant } = await supabase
@@ -71,21 +123,26 @@ const Login = () => {
               .eq('id', registeredRestaurantId)
               .single();
               
+            console.log("checkUserAndRedirect - Dados do restaurante:", restaurant);
             if (restaurant?.slug) {
+              console.log(`checkUserAndRedirect - Redirecionando para /restaurante/${restaurant.slug}`);
               navigate(`/restaurante/${restaurant.slug}`);
               return;
             }
           }
           
           // Fallback para home se não encontrar restaurante
+          console.log("checkUserAndRedirect - Redirecionando para home (/)");
           navigate('/');
         } else {
           // Se for admin ou dono de restaurante, vai para o dashboard
+          console.log("checkUserAndRedirect - Redirecionando para o dashboard");
           navigate('/dashboard');
         }
       } catch (err) {
         console.error('Erro ao verificar perfil:', err);
         // Em caso de erro, manda para o dashboard como fallback
+        console.log("checkUserAndRedirect - Erro, redirecionando para o dashboard");
         navigate('/dashboard');
       }
     };
@@ -93,15 +150,26 @@ const Login = () => {
     checkUserAndRedirect();
   }, [user, isAuthLoading, navigate, locationState]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     
     try {
-      const { error } = await signIn(email, password);
+      // Não é mais necessário aplicar applyCSRFToFormData, apenas garantir que o campo _csrf está no form
+      const { error } = await signIn(data.email, data.password);
       
       if (error) {
-        toast.error("Erro ao fazer login: " + error.message);
+        // Tratar erros específicos do Supabase
+        if (error.message.includes('Invalid login credentials')) {
+          form.setError('root', { 
+            message: 'Email ou senha incorretos'
+          });
+        } else if (error.message.includes('Email not confirmed')) {
+          form.setError('email', { 
+            message: 'Email não confirmado. Verifique sua caixa de entrada.'
+          });
+        } else {
+          toast.error("Erro ao fazer login: " + error.message);
+        }
       } else {
         toast.success("Login realizado com sucesso!");
         // O redirecionamento é gerenciado pelo useEffect
@@ -153,53 +221,84 @@ const Login = () => {
           </CardHeader>
           
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {/* Campo oculto para o token CSRF */}
+                <input type="hidden" name="_csrf" value={csrfToken} />
+                
+                <div className="flex items-center text-xs text-gray-500 mb-2">
+                  <ShieldCheck className="h-3 w-3 mr-1 text-brand-500" />
+                  <span>Conexão segura</span>
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel>Email</FormLabel>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="email"
+                            placeholder="seu@email.com"
+                            className="pl-10"
+                            autoComplete="email"
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel>Senha</FormLabel>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="password"
+                            placeholder="••••••••"
+                            className="pl-10"
+                            autoComplete="current-password"
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex items-center justify-between">
+                  <Link to="/forgot-password" className="text-sm text-brand-600 hover:text-brand-700">
+                    Esqueceu a senha?
+                  </Link>
                 </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <Link to="/forgot-password" className="text-sm text-brand-600 hover:text-brand-700">
-                  Esqueceu a senha?
-                </Link>
-              </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white"
-                disabled={isLoading}
-              >
-                {isLoading ? "Entrando..." : "Entrar"}
-              </Button>
-            </form>
+                
+                <Alert variant="destructive" className={form.formState.errors.root ? "block" : "hidden"}>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {form.formState.errors.root?.message}
+                  </AlertDescription>
+                </Alert>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Entrando..." : "Entrar"}
+                </Button>
+              </form>
+            </Form>
             
             <Separator className="my-6" />
             

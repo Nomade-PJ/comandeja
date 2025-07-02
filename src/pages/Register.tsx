@@ -6,22 +6,44 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Mail, Lock, User, Store } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User, Store, AlertCircle, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { registerSchema } from "@/lib/validations";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useSecurity } from "@/hooks/useSecurity";
+
+// Interface para o formulário de registro
+interface RegisterFormValues {
+  name: string;
+  email: string;
+  restaurantName: string;
+  password: string;
+  confirmPassword: string;
+  acceptTerms: boolean;
+}
 
 const Register = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    restaurantName: "",
-    password: "",
-    confirmPassword: "",
-    acceptTerms: false
-  });
   const [isLoading, setIsLoading] = useState(false);
-  const { signUp, user, isLoading: isAuthLoading } = useAuth();
+  const { signUp, user, loading: isAuthLoading } = useAuth();
   const navigate = useNavigate();
+  const { csrfToken } = useSecurity();
+
+  // Configurar o formulário com validação Zod
+  const form = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      restaurantName: "",
+      password: "",
+      confirmPassword: "",
+      acceptTerms: false
+    }
+  });
 
   // Verificar se o usuário já está autenticado
   useEffect(() => {
@@ -30,38 +52,22 @@ const Register = () => {
     }
   }, [user, isAuthLoading, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (formData.password !== formData.confirmPassword) {
-      toast.error("As senhas não coincidem");
-      return;
-    }
-    
-    if (formData.password.length < 6) {
-      toast.error("A senha deve ter pelo menos 6 caracteres");
-      return;
-    }
-
-    if (!formData.acceptTerms) {
-      toast.error("Você deve aceitar os termos de uso");
-      return;
-    }
-    
+  const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
     
     try {
-      console.log('Attempting to create account with:', {
-        email: formData.email,
-        name: formData.name,
-        role: 'restaurant_owner'
-      });
-
-      const { error } = await signUp(formData.email, formData.password, formData.name, 'restaurant_owner');
+      const { error } = await signUp(data.email, data.password, data.name, 'restaurant_owner');
       
       if (error) {
         console.error('Signup error:', error);
         toast.error("Erro ao criar conta: " + error.message);
+        
+        // Tratar erros específicos do Supabase
+        if (error.message.includes('email')) {
+          form.setError("email", { 
+            message: "Este email já está em uso ou é inválido" 
+          });
+        }
       } else {
         console.log('Account created successfully');
         toast.success("Conta criada com sucesso! Verifique seu email para confirmar.");
@@ -73,13 +79,6 @@ const Register = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
   };
 
   // Mostrar um indicador de carregamento enquanto verifica a autenticação
@@ -120,120 +119,171 @@ const Register = () => {
           </CardHeader>
           
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome completo</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="name"
-                    name="name"
-                    type="text"
-                    placeholder="Seu nome"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="pl-10"
-                    required
-                  />
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {/* Campo oculto para o token CSRF */}
+                <input type="hidden" name="_csrf" value={csrfToken} />
+                
+                <div className="flex items-center text-xs text-gray-500 mb-2">
+                  <ShieldCheck className="h-3 w-3 mr-1 text-brand-500" />
+                  <span>Conexão segura</span>
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="restaurantName">Nome do restaurante</Label>
-                <div className="relative">
-                  <Store className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="restaurantName"
-                    name="restaurantName"
-                    type="text"
-                    placeholder="Nome do seu restaurante"
-                    value={formData.restaurantName}
-                    onChange={handleInputChange}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar senha</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="terms" 
-                  checked={formData.acceptTerms}
-                  onCheckedChange={(checked) => 
-                    setFormData({...formData, acceptTerms: checked as boolean})
-                  }
+                
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel>Nome completo</FormLabel>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Seu nome"
+                            className="pl-10"
+                            autoComplete="name"
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                <Label htmlFor="terms" className="text-sm">
-                  Aceito os{" "}
-                  <Link to="/terms" className="text-brand-600 hover:text-brand-700">
-                    termos de uso
-                  </Link>{" "}
-                  e{" "}
-                  <Link to="/privacy" className="text-brand-600 hover:text-brand-700">
-                    política de privacidade
-                  </Link>
-                </Label>
-              </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white"
-                disabled={isLoading || !formData.acceptTerms}
-              >
-                {isLoading ? "Criando conta..." : "Criar conta grátis"}
-              </Button>
-            </form>
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel>Email</FormLabel>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="email"
+                            placeholder="seu@email.com"
+                            className="pl-10"
+                            autoComplete="email"
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="restaurantName"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel>Nome do restaurante</FormLabel>
+                      <div className="relative">
+                        <Store className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Nome do seu restaurante"
+                            className="pl-10"
+                            autoComplete="organization"
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel>Senha</FormLabel>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="password"
+                            placeholder="••••••••"
+                            className="pl-10"
+                            autoComplete="new-password"
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel>Confirmar senha</FormLabel>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="password"
+                            placeholder="••••••••"
+                            className="pl-10"
+                            autoComplete="new-password"
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="acceptTerms"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2">
+                      <FormControl>
+                        <Checkbox 
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="text-sm">
+                        Aceito os{" "}
+                        <Link to="/terms" className="text-brand-600 hover:text-brand-700">
+                          termos de uso
+                        </Link>{" "}
+                        e{" "}
+                        <Link to="/privacy" className="text-brand-600 hover:text-brand-700">
+                          política de privacidade
+                        </Link>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <Alert variant="destructive" className={form.formState.errors.root ? "block" : "hidden"}>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {form.formState.errors.root?.message}
+                  </AlertDescription>
+                </Alert>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Criando conta..." : "Criar conta grátis"}
+                </Button>
+              </form>
+            </Form>
             
             <Separator className="my-6" />
             

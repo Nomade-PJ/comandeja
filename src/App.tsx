@@ -26,6 +26,8 @@ import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { supabase } from "./integrations/supabase/client";
 import { realtimeService } from "./integrations/supabase/realtimeService";
+// Importar o filtro de console
+import "@/utils/console-filter";
 
 const queryClient = new QueryClient();
 

@@ -49,8 +49,11 @@ export interface DashboardStats {
 }
 
 export function useDashboardStats() {
-  const { restaurant } = useRestaurant();
+  const { restaurant, loading: restaurantLoading } = useRestaurant();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
   const [stats, setStats] = useState<DashboardStats>({
     todaySales: { value: formatCurrency(0), change: '0%', changeType: 'neutral' },
     todayOrders: { value: '0', change: '0%', changeType: 'neutral' },
@@ -66,12 +69,11 @@ export function useDashboardStats() {
     recentOrders: [],
   });
 
-  // Função para buscar pedidos recentes
+  // Função para buscar pedidos recentes com retry
   const fetchRecentOrders = useCallback(async () => {
     if (!restaurant) return;
     
     try {
-      // Buscar os 10 pedidos mais recentes
       const { data: recentOrdersData, error: recentOrdersError } = await supabase
         .from('orders')
         .select('id, order_number, customer_name, created_at, status, total')
@@ -79,7 +81,9 @@ export function useDashboardStats() {
         .order('created_at', { ascending: false })
         .limit(10);
       
-      if (!recentOrdersError && recentOrdersData) {
+      if (recentOrdersError) throw recentOrdersError;
+      
+      if (recentOrdersData) {
         setStats(prevStats => ({
           ...prevStats,
           recentOrders: recentOrdersData
@@ -87,6 +91,7 @@ export function useDashboardStats() {
       }
     } catch (error) {
       console.error('Erro ao buscar pedidos recentes:', error);
+      throw error; // Propagar erro para ser tratado pelo fetchDashboardStats
     }
   }, [restaurant]);
 
@@ -96,6 +101,7 @@ export function useDashboardStats() {
     
     try {
       setLoading(true);
+      setError(null);
       
       // Obter a data de hoje e ontem
       const today = new Date();
@@ -105,17 +111,46 @@ export function useDashboardStats() {
       const todayStr = today.toISOString().split('T')[0];
       const yesterdayStr = yesterday.toISOString().split('T')[0];
       
-      // 1. Obter vendas de hoje e de ontem
-      const { data: salesData, error: salesError } = await supabase
-        .from('dashboard_statistics')
-        .select('date, total_revenue')
-        .eq('restaurant_id', restaurant.id)
-        .in('date', [todayStr, yesterdayStr]);
-      
-      if (salesError) throw salesError;
-      
-      const todaySalesData = salesData?.find(item => item.date === todayStr);
-      const yesterdaySalesData = salesData?.find(item => item.date === yesterdayStr);
+      // Fazer todas as chamadas em paralelo
+      const [salesResponse, ordersResponse, customersResponse, ordersTimeResponse] = await Promise.all([
+        // 1. Vendas
+        supabase
+          .from('dashboard_statistics')
+          .select('date, total_revenue')
+          .eq('restaurant_id', restaurant.id)
+          .in('date', [todayStr, yesterdayStr]),
+        
+        // 2. Pedidos
+        supabase
+          .from('dashboard_statistics')
+          .select('date, total_orders')
+          .eq('restaurant_id', restaurant.id)
+          .in('date', [todayStr, yesterdayStr]),
+        
+        // 3. Clientes
+        supabase
+          .from('dashboard_statistics')
+          .select('date, total_customers')
+          .eq('restaurant_id', restaurant.id)
+          .in('date', [todayStr, yesterdayStr]),
+        
+        // 4. Tempo médio
+        supabase
+          .from('orders')
+          .select('created_at, updated_at, status')
+          .eq('restaurant_id', restaurant.id)
+          .eq('status', 'delivered')
+          .gte('created_at', today.toISOString().split('T')[0])
+      ]);
+
+      // Verificar erros
+      if (salesResponse.error) throw salesResponse.error;
+      if (ordersResponse.error) throw ordersResponse.error;
+      if (customersResponse.error) throw customersResponse.error;
+      if (ordersTimeResponse.error) throw ordersTimeResponse.error;
+
+      const todaySalesData = salesResponse.data?.find(item => item.date === todayStr);
+      const yesterdaySalesData = salesResponse.data?.find(item => item.date === yesterdayStr);
       
       const todaySales = todaySalesData?.total_revenue || 0;
       const yesterdaySales = yesterdaySalesData?.total_revenue || 0;
@@ -130,17 +165,8 @@ export function useDashboardStats() {
         salesChange < 0 ? 'negative' : 
         'neutral';
       
-      // 2. Obter pedidos de hoje e ontem
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('dashboard_statistics')
-        .select('date, total_orders')
-        .eq('restaurant_id', restaurant.id)
-        .in('date', [todayStr, yesterdayStr]);
-      
-      if (ordersError) throw ordersError;
-      
-      const todayOrdersData = ordersData?.find(item => item.date === todayStr);
-      const yesterdayOrdersData = ordersData?.find(item => item.date === yesterdayStr);
+      const todayOrdersData = ordersResponse.data?.find(item => item.date === todayStr);
+      const yesterdayOrdersData = ordersResponse.data?.find(item => item.date === yesterdayStr);
       
       const todayOrders = todayOrdersData?.total_orders || 0;
       const yesterdayOrders = yesterdayOrdersData?.total_orders || 0;
@@ -155,17 +181,8 @@ export function useDashboardStats() {
         ordersChange < 0 ? 'negative' : 
         'neutral';
       
-      // 3. Obter novos clientes de hoje e ontem
-      const { data: customersData, error: customersError } = await supabase
-        .from('dashboard_statistics')
-        .select('date, total_customers')
-        .eq('restaurant_id', restaurant.id)
-        .in('date', [todayStr, yesterdayStr]);
-      
-      if (customersError) throw customersError;
-      
-      const todayCustomersData = customersData?.find(item => item.date === todayStr);
-      const yesterdayCustomersData = customersData?.find(item => item.date === yesterdayStr);
+      const todayCustomersData = customersResponse.data?.find(item => item.date === todayStr);
+      const yesterdayCustomersData = customersResponse.data?.find(item => item.date === yesterdayStr);
       
       const todayCustomers = todayCustomersData?.total_customers || 0;
       const yesterdayCustomers = yesterdayCustomersData?.total_customers || 0;
@@ -181,18 +198,13 @@ export function useDashboardStats() {
         'neutral';
       
       // 4. Calcular tempo médio dos pedidos
-      const { data: ordersTimeData, error: ordersTimeError } = await supabase
-        .from('orders')
-        .select('created_at, updated_at, status')
-        .eq('restaurant_id', restaurant.id)
-        .eq('status', 'delivered')
-        .gte('created_at', today.toISOString().split('T')[0]);
+      const ordersTimeData = ordersTimeResponse.data;
       
       let averageTime = 0;
       let averageTimeChange = 0;
       let averageTimeChangeType: 'positive' | 'negative' | 'neutral' = 'neutral';
       
-      if (!ordersTimeError && ordersTimeData && ordersTimeData.length > 0) {
+      if (ordersTimeData && ordersTimeData.length > 0) {
         // Calcular tempo médio de entrega de hoje
         const totalMinutes = ordersTimeData.reduce((acc, order) => {
           const createdAt = new Date(order.created_at);
@@ -204,13 +216,11 @@ export function useDashboardStats() {
         averageTime = Math.round(totalMinutes / ordersTimeData.length);
         
         // Obter tempo médio de ontem para comparação
-        const { data: yesterdayTimeData } = await supabase
-          .from('orders')
-          .select('created_at, updated_at, status')
-          .eq('restaurant_id', restaurant.id)
-          .eq('status', 'delivered')
-          .gte('created_at', yesterdayStr)
-          .lt('created_at', todayStr);
+        const yesterdayTimeData = ordersTimeData.filter(item => {
+          const createdAt = new Date(item.created_at);
+          const yesterdayStrDate = new Date(yesterdayStr);
+          return createdAt >= yesterdayStrDate && createdAt < today;
+        });
         
         if (yesterdayTimeData && yesterdayTimeData.length > 0) {
           const yesterdayTotalMinutes = yesterdayTimeData.reduce((acc, order) => {
@@ -301,8 +311,11 @@ export function useDashboardStats() {
           }))
         : [];
       
-      // 7. Obter pedidos recentes
+      // Buscar pedidos recentes
       await fetchRecentOrders();
+      
+      // Resetar contador de tentativas após sucesso
+      setRetryCount(0);
       
       // Atualizar o estado com todos os dados
       setStats({
@@ -333,18 +346,28 @@ export function useDashboardStats() {
         recentOrders: stats.recentOrders,
       });
     } catch (error) {
-      console.error('Erro ao buscar estatísticas do dashboard:', error);
+      setError(error as Error);
+      console.error('Erro ao carregar estatísticas:', error);
+      
+      // Tentar novamente se ainda não atingiu o limite
+      if (retryCount < MAX_RETRIES) {
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          fetchDashboardStats();
+        }, delay);
+      }
     } finally {
       setLoading(false);
     }
-  }, [restaurant, fetchRecentOrders]);
-  
-  // Buscar estatísticas quando o restaurante mudar
+  }, [restaurant, retryCount, fetchRecentOrders]);
+
+  // Efeito para carregar dados iniciais
   useEffect(() => {
-    if (restaurant) {
+    if (!restaurantLoading && restaurant) {
       fetchDashboardStats();
     }
-  }, [restaurant, fetchDashboardStats]);
+  }, [restaurant, restaurantLoading, fetchDashboardStats]);
 
   // Configurar assinatura em tempo real para pedidos
   useEffect(() => {
@@ -371,6 +394,7 @@ export function useDashboardStats() {
   return {
     stats,
     loading,
+    error,
     refreshStats: fetchDashboardStats
   };
 } 

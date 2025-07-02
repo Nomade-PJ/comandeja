@@ -1,22 +1,37 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { supabase, logDebug } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
+import { signIn, signUp, signOut, resetSessionTimers, setupSessionMonitoring } from '../lib/auth';
 
 interface AuthContextType {
-  session: Session | null;
   user: User | null;
-  isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string, role?: string) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
+  session: Session | null;
+  loading: boolean;
+  error: Error | null;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, role?: string) => Promise<{ error: Error | null }>;
+  signOut: () => Promise<any>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  session: null,
+  loading: true,
+  error: null,
+  signIn: async () => ({ error: null }),
+  signUp: async () => ({ error: null }),
+  signOut: async () => {},
+});
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [session, setSession] = useState<Session | null>(null);
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   // Função para verificar e preencher o perfil do usuário
   const ensureUserProfile = async (userId: string) => {
@@ -58,98 +73,111 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    console.log('Inicializando AuthContext');
+    logDebug('Inicializando AuthContext');
     
-    // Verificar sessão atual
-    const initializeAuth = async () => {
+    const fetchSession = async () => {
       try {
-        setIsLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          console.log('Usuário já autenticado:', session.user.email);
-          // Verificar se o usuário tem um perfil
-          await ensureUserProfile(session.user.id);
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          throw error;
         }
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-      } catch (error) {
-        console.error('Erro ao inicializar autenticação:', error);
+
+        setSession(data.session);
+        setUser(data.session?.user || null);
+
+        if (data.session) {
+          // Verificar se o usuário tem um perfil
+          await ensureUserProfile(data.session.user.id);
+          // Iniciar monitoramento de sessão se o usuário estiver autenticado
+          setupSessionMonitoring();
+        }
+      } catch (error: any) {
+        console.error('Erro ao obter sessão:', error.message);
+        setError(error);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
-    initializeAuth();
+    fetchSession();
 
-    // Configurar listener para mudanças de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Evento de autenticação:', event);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        // Verificar se o usuário tem um perfil quando fizer login
-        await ensureUserProfile(session.user.id);
-      }
-      
+    // Configurar o listener de mudança de autenticação
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
+      setUser(session?.user || null);
+      setLoading(false);
+
+      if (session) {
+        // Reiniciar os timers de sessão quando o estado de autenticação mudar
+        resetSessionTimers();
+        // Verificar se o usuário tem um perfil quando fizer login
+        ensureUserProfile(session.user.id);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    // Cleanup do listener
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    setIsLoading(true);
+  const handleSignIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
+      setLoading(true);
+      const { error } = await signIn(email, password);
+      if (error) throw error;
+      return { error: null };
+    } catch (error: any) {
+      console.error('Erro de login:', error.message);
+      setError(error);
       return { error };
     } finally {
-      // O estado isLoading será atualizado pelo evento onAuthStateChange
+      setLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string, role: string = 'customer') => {
-    setIsLoading(true);
+  const handleSignUp = async (email: string, password: string, fullName: string, role: string = 'restaurant_owner') => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: fullName,
-            role: role
-          }
-        }
-      });
-      
+      setLoading(true);
+      const { error } = await signUp(email, password, fullName, role);
+      if (error) throw error;
+      return { error: null };
+    } catch (error: any) {
+      console.error('Erro de registro:', error.message);
+      setError(error);
       return { error };
     } finally {
-      // O estado isLoading será atualizado pelo evento onAuthStateChange
+      setLoading(false);
     }
   };
 
-  const signOut = async () => {
-    setIsLoading(true);
-    await supabase.auth.signOut();
-    // O estado isLoading será atualizado pelo evento onAuthStateChange
+  const handleSignOut = async () => {
+    try {
+      setLoading(true);
+      await signOut();
+    } catch (error: any) {
+      console.error('Erro ao sair:', error.message);
+      setError(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const value = {
-    session,
-    user,
-    isLoading,
-    signIn,
-    signUp,
-    signOut
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        error,
+        signIn: handleSignIn,
+        signUp: handleSignUp,
+        signOut: handleSignOut,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
