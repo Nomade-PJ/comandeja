@@ -65,7 +65,6 @@ export function setupTokenRenewal() {
           // Reconfigura a renovação após sucesso
           setupTokenRenewal();
         } else {
-          console.error("Erro ao renovar token:", error);
           // Forçar logout se não conseguir renovar
           await supabase.auth.signOut();
           window.location.href = '/login';
@@ -133,8 +132,6 @@ export const signIn = async (email: string, password: string) => {
   
   if (!error) {
     resetSessionTimers();
-  } else {
-    console.error("auth.ts - Erro no login:", error);
   }
   
   return { error };

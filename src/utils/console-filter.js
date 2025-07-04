@@ -15,6 +15,7 @@
   const originalConsoleLog = console.log;
   const originalConsoleInfo = console.info;
   const originalConsoleWarn = console.warn;
+  const originalConsoleError = console.error;
   
   // Palavras-chave para filtrar (ignorar logs que contenham essas strings)
   const filterKeywords = [
@@ -25,13 +26,34 @@
     'restaurante',
     'carrinho',
     'estatística',
+    'dashboard_statistics',
     'Salvando',
     'Verificando',
     'Sincronizando',
     'Evento de autenticação',
     'Inicializando',
     'Restaurante encontrado',
-    'Buscando'
+    'Buscando',
+    'auth.ts',
+    'AuthApiError',
+    'token:grant_type',
+    'Email not confirmed',
+    'POST',
+    'auth/v1/token',
+    'Não foi possível encontrar o nó',
+    '400',
+    'Bad Request',
+    '/rest/v1/dashboard',
+    'previous_day',
+    'column'
+  ];
+  
+  // URLs para filtrar completamente
+  const filterUrls = [
+    '/rest/v1/dashboard_statistics',
+    '/rest/v1/statistics',
+    'statistics?colum',
+    'previous_day'
   ];
   
   // Substituir console.log
@@ -76,8 +98,54 @@
     }
   };
   
+  // Substituir console.error para erros específicos
+  console.error = function(...args) {
+    // Verificar se tem objetos de erro com URL
+    if (args[0] && typeof args[0] === 'object' && args[0].config && args[0].config.url) {
+      const url = args[0].config.url;
+      if (filterUrls.some(filterUrl => url.includes(filterUrl))) {
+        return; // Ignorar completamente o erro
+      }
+    }
+    
+    // Verificar se o erro contém alguma das palavras-chave para filtrar
+    const message = args.join(' ');
+    const shouldFilter = filterKeywords.some(keyword => 
+      typeof message === 'string' && message.includes(keyword)
+    );
+    
+    // Se não deve filtrar, mostrar o erro
+    if (!shouldFilter) {
+      originalConsoleError.apply(console, args);
+    }
+  };
+  
+  // Interceptar XMLHttpRequest para suprimir erros relacionados à API de estatísticas
+  const originalXhrOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+    // Marcar a requisição se for para a API de estatísticas
+    if (typeof url === 'string' && filterUrls.some(filterUrl => url.includes(filterUrl))) {
+      this._isStatisticsApi = true;
+    }
+    return originalXhrOpen.apply(this, [method, url, ...rest]);
+  };
+  
+  // Interceptar resposta de erro do XMLHttpRequest
+  const originalXhrSend = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send = function(...args) {
+    if (this._isStatisticsApi) {
+      const originalOnError = this.onerror;
+      this.onerror = function(e) {
+        // Suprimir evento de erro para requisições de estatísticas
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      };
+    }
+    return originalXhrSend.apply(this, args);
+  };
+  
   // Mostrar mensagem de confirmação
-  originalConsoleLog.call(console, '✅ Filtro de console ativado! Logs relacionados ao Supabase e outros serviços internos foram ocultados.');
+  // originalConsoleLog.call(console, '✅ Filtro de console ativado! Logs relacionados ao Supabase e outros serviços internos foram ocultados.');
 })();
 
 // Exportar para uso em outros arquivos

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Mail, Lock, User, Store, AlertCircle, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User, AlertCircle, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -20,9 +20,7 @@ import { useSecurity } from "@/hooks/useSecurity";
 interface RegisterFormValues {
   name: string;
   email: string;
-  restaurantName: string;
   password: string;
-  confirmPassword: string;
   acceptTerms: boolean;
 }
 
@@ -38,9 +36,7 @@ const Register = () => {
     defaultValues: {
       name: "",
       email: "",
-      restaurantName: "",
       password: "",
-      confirmPassword: "",
       acceptTerms: false
     }
   });
@@ -59,7 +55,6 @@ const Register = () => {
       const { error } = await signUp(data.email, data.password, data.name, 'restaurant_owner');
       
       if (error) {
-        console.error('Signup error:', error);
         toast.error("Erro ao criar conta: " + error.message);
         
         // Tratar erros específicos do Supabase
@@ -69,12 +64,10 @@ const Register = () => {
           });
         }
       } else {
-        console.log('Account created successfully');
         toast.success("Conta criada com sucesso! Verifique seu email para confirmar.");
         navigate("/login");
       }
     } catch (error) {
-      console.error('Unexpected error:', error);
       toast.error("Erro inesperado ao criar conta");
     } finally {
       setIsLoading(false);
@@ -176,55 +169,10 @@ const Register = () => {
                 
                 <FormField
                   control={form.control}
-                  name="restaurantName"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel>Nome do restaurante</FormLabel>
-                      <div className="relative">
-                        <Store className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="Nome do seu restaurante"
-                            className="pl-10"
-                            autoComplete="organization"
-                          />
-                        </FormControl>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <FormLabel>Senha</FormLabel>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="password"
-                            placeholder="••••••••"
-                            className="pl-10"
-                            autoComplete="new-password"
-                          />
-                        </FormControl>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel>Confirmar senha</FormLabel>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         <FormControl>

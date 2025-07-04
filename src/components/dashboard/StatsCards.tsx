@@ -1,59 +1,48 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, ShoppingBag, Users, Clock } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
-import { Skeleton } from "@/components/ui/skeleton";
+import React from "react";
 
 type ChangeType = "positive" | "negative" | "neutral";
 
 const StatsCards = () => {
-  const { stats, loading } = useDashboardStats();
+  const { stats } = useDashboardStats();
 
-  if (loading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[...Array(4)].map((_, index) => (
-          <Card key={index} className="stat-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-4 rounded-full" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-20 mb-1" />
-              <Skeleton className="h-3 w-16" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
+  // Garantir que sempre temos valores, mesmo que stats seja undefined
+  const safeStats = stats || {
+    todaySales: { value: 'R$ 0,00', change: '0%', changeType: 'neutral' as ChangeType },
+    todayOrders: { value: '0', change: '0%', changeType: 'neutral' as ChangeType },
+    newCustomers: { value: '0', change: '0%', changeType: 'neutral' as ChangeType },
+    averageTime: { value: '0 min', change: '0%', changeType: 'neutral' as ChangeType },
+  };
 
   const statItems = [
     {
       title: "Vendas Hoje",
-      value: stats.todaySales.value,
-      change: stats.todaySales.change,
-      changeType: stats.todaySales.changeType as ChangeType,
+      value: safeStats.todaySales.value,
+      change: safeStats.todaySales.change,
+      changeType: safeStats.todaySales.changeType as ChangeType,
       icon: TrendingUp,
     },
     {
       title: "Pedidos Hoje",
-      value: stats.todayOrders.value,
-      change: stats.todayOrders.change,
-      changeType: stats.todayOrders.changeType as ChangeType,
+      value: safeStats.todayOrders.value,
+      change: safeStats.todayOrders.change,
+      changeType: safeStats.todayOrders.changeType as ChangeType,
       icon: ShoppingBag,
     },
     {
       title: "Novos Clientes",
-      value: stats.newCustomers.value,
-      change: stats.newCustomers.change,
-      changeType: stats.newCustomers.changeType as ChangeType,
+      value: safeStats.newCustomers.value,
+      change: safeStats.newCustomers.change,
+      changeType: safeStats.newCustomers.changeType as ChangeType,
       icon: Users,
     },
     {
       title: "Tempo Médio",
-      value: stats.averageTime.value,
-      change: stats.averageTime.change,
-      changeType: stats.averageTime.changeType as ChangeType,
+      value: safeStats.averageTime.value,
+      change: safeStats.averageTime.change,
+      changeType: safeStats.averageTime.changeType as ChangeType,
       icon: Clock,
     },
   ];

@@ -22,6 +22,7 @@ import { formatCurrency } from "@/lib/utils";
 import { ChevronDown, Eye, MoreVertical } from "lucide-react";
 import { OrderWithItems } from "@/hooks/useOrders";
 import OrderDetailsModal from "../modals/OrderDetailsModal";
+import { Card } from "@/components/ui/card";
 
 interface OrdersTableProps {
   orders: OrderWithItems[];
@@ -68,109 +69,208 @@ const OrdersTable = ({ orders, onUpdateStatus }: OrdersTableProps) => {
 
   return (
     <>
-      <div className="rounded-md border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Pedido</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Data</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead className="w-[100px]">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((order) => {
-              const status = getStatusDisplay(order.status);
-              return (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.order_number}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span>{order.customer_name}</span>
-                      {order.customer_phone && (
-                        <span className="text-xs text-gray-500">{order.customer_phone}</span>
+      {/* Versão mobile (cards) */}
+      <div className="sm:hidden space-y-3 px-3">
+        {orders.map((order) => {
+          const status = getStatusDisplay(order.status);
+          return (
+            <Card key={order.id} className="overflow-hidden border shadow-sm">
+              <div className="p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-medium">{order.order_number}</div>
+                  <Badge variant="outline" className={`${status.color}`}>
+                    {status.label}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="text-gray-500">Cliente:</div>
+                    <div>{order.customer_name}</div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="text-gray-500">Data:</div>
+                    <div>
+                      {format(new Date(order.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="text-gray-500">Total:</div>
+                    <div className="font-medium">{formatCurrency(order.total)}</div>
+                  </div>
+                </div>
+                
+                <div className="mt-3 flex items-center justify-between">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleViewDetails(order)}
+                    className="text-xs w-full"
+                  >
+                    <Eye className="mr-1 h-3 w-3" />
+                    Ver detalhes
+                  </Button>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ml-2">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Alterar Status</DropdownMenuLabel>
+                      {order.status !== 'confirmed' && (
+                        <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'confirmed')}>
+                          <Badge variant="outline" className={statusConfig.confirmed.color + " mr-2"}>
+                            Confirmado
+                          </Badge>
+                        </DropdownMenuItem>
                       )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {format(new Date(order.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={`${status.color}`}>
-                      {status.label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrency(order.total)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-end">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleViewDetails(order)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Ver detalhes
-                          </DropdownMenuItem>
-                          <DropdownMenuLabel>Alterar Status</DropdownMenuLabel>
-                          {order.status !== 'confirmed' && (
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'confirmed')}>
-                              <Badge variant="outline" className={statusConfig.confirmed.color + " mr-2"}>
-                                Confirmado
-                              </Badge>
+                      {order.status !== 'preparing' && (
+                        <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'preparing')}>
+                          <Badge variant="outline" className={statusConfig.preparing.color + " mr-2"}>
+                            Preparando
+                          </Badge>
+                        </DropdownMenuItem>
+                      )}
+                      {order.status !== 'ready' && (
+                        <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'ready')}>
+                          <Badge variant="outline" className={statusConfig.ready.color + " mr-2"}>
+                            Pronto
+                          </Badge>
+                        </DropdownMenuItem>
+                      )}
+                      {order.status !== 'delivered' && (
+                        <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'delivered')}>
+                          <Badge variant="outline" className={statusConfig.delivered.color + " mr-2"}>
+                            Entregue
+                          </Badge>
+                        </DropdownMenuItem>
+                      )}
+                      {order.status !== 'cancelled' && (
+                        <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'cancelled')}>
+                          <Badge variant="outline" className={statusConfig.cancelled.color + " mr-2"}>
+                            Cancelado
+                          </Badge>
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Versão desktop (tabela) */}
+      <div className="hidden sm:block">
+        <div className="rounded-md border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Pedido</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="w-[100px]">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {orders.map((order) => {
+                const status = getStatusDisplay(order.status);
+                return (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">{order.order_number}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span>{order.customer_name}</span>
+                        {order.customer_phone && (
+                          <span className="text-xs text-gray-500">{order.customer_phone}</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(order.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`${status.color}`}>
+                        {status.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {formatCurrency(order.total)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleViewDetails(order)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Ver detalhes
                             </DropdownMenuItem>
-                          )}
-                          {order.status !== 'preparing' && (
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'preparing')}>
-                              <Badge variant="outline" className={statusConfig.preparing.color + " mr-2"}>
-                                Preparando
-                              </Badge>
-                            </DropdownMenuItem>
-                          )}
-                          {order.status !== 'ready' && (
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'ready')}>
-                              <Badge variant="outline" className={statusConfig.ready.color + " mr-2"}>
-                                Pronto
-                              </Badge>
-                            </DropdownMenuItem>
-                          )}
-                          {order.status !== 'out_for_delivery' && order.delivery_method === 'delivery' && (
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'out_for_delivery')}>
-                              <Badge variant="outline" className={statusConfig.out_for_delivery.color + " mr-2"}>
-                                Em rota
-                              </Badge>
-                            </DropdownMenuItem>
-                          )}
-                          {order.status !== 'delivered' && (
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'delivered')}>
-                              <Badge variant="outline" className={statusConfig.delivered.color + " mr-2"}>
-                                Entregue
-                              </Badge>
-                            </DropdownMenuItem>
-                          )}
-                          {order.status !== 'cancelled' && (
-                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'cancelled')}>
-                              <Badge variant="outline" className={statusConfig.cancelled.color + " mr-2"}>
-                                Cancelado
-                              </Badge>
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                            <DropdownMenuLabel>Alterar Status</DropdownMenuLabel>
+                            {order.status !== 'confirmed' && (
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'confirmed')}>
+                                <Badge variant="outline" className={statusConfig.confirmed.color + " mr-2"}>
+                                  Confirmado
+                                </Badge>
+                              </DropdownMenuItem>
+                            )}
+                            {order.status !== 'preparing' && (
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'preparing')}>
+                                <Badge variant="outline" className={statusConfig.preparing.color + " mr-2"}>
+                                  Preparando
+                                </Badge>
+                              </DropdownMenuItem>
+                            )}
+                            {order.status !== 'ready' && (
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'ready')}>
+                                <Badge variant="outline" className={statusConfig.ready.color + " mr-2"}>
+                                  Pronto
+                                </Badge>
+                              </DropdownMenuItem>
+                            )}
+                            {order.status !== 'out_for_delivery' && order.delivery_method === 'delivery' && (
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'out_for_delivery')}>
+                                <Badge variant="outline" className={statusConfig.out_for_delivery.color + " mr-2"}>
+                                  Em rota
+                                </Badge>
+                              </DropdownMenuItem>
+                            )}
+                            {order.status !== 'delivered' && (
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'delivered')}>
+                                <Badge variant="outline" className={statusConfig.delivered.color + " mr-2"}>
+                                  Entregue
+                                </Badge>
+                              </DropdownMenuItem>
+                            )}
+                            {order.status !== 'cancelled' && (
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, 'cancelled')}>
+                                <Badge variant="outline" className={statusConfig.cancelled.color + " mr-2"}>
+                                  Cancelado
+                                </Badge>
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {selectedOrder && (

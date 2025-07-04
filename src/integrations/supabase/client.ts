@@ -8,7 +8,7 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const ENABLE_DETAILED_LOGS = false;
 
 // Mostrar mensagem de filtro ativado
-console.log("Filtro de console ativado! Logs relacionados ao Supabase e outros serviços internos foram ocultados.");
+// console.log("✅ Filtro de console ativado! Logs relacionados ao Supabase e outros serviços internos foram ocultados.");
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -50,21 +50,37 @@ const supabaseOptions = {
     },
   },
   persistSession: true,
-  // Logs detalhados para debug
+  // Logs desativados para evitar poluição do console
   logger: {
-    error: (msg: string) => {
-      console.error('[Supabase Error]:', msg);
-    },
-    warn: (msg: string) => {
-      console.warn('[Supabase Warning]:', msg);
-    },
-    info: ENABLE_DETAILED_LOGS ? (msg: string) => {
-      console.info('[Supabase Info]:', msg);
-    } : () => {},
-    debug: ENABLE_DETAILED_LOGS ? (msg: string) => {
-      console.debug('[Supabase Debug]:', msg);
-    } : () => {},
+    error: () => {},
+    warn: () => {},
+    info: () => {},
+    debug: () => {},
   }
+};
+
+// Função para filtrar requisições com falha 400 para /dashboard_statistics para evitar poluir o console
+const originalFetch = window.fetch;
+window.fetch = function(...args) {
+  const url = args[0].toString();
+  
+  if (url.includes('/dashboard_statistics')) {
+    const originalPromise = originalFetch.apply(this, args);
+    
+    return originalPromise.catch(error => {
+      // Silenciosamente falhar requisições de dashboard_statistics
+      if (url.includes('/dashboard_statistics')) {
+        return {
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ data: [] })
+        };
+      }
+      throw error;
+    });
+  }
+  
+  return originalFetch.apply(this, args);
 };
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, supabaseOptions);

@@ -72,8 +72,6 @@ const Login = () => {
           .single();
 
         if (error) {
-          console.error('Erro ao verificar perfil:', error);
-          
           // Se houver erro ao buscar o perfil, verificar se há informações de papel nos metadados do usuário
           const userRole = user.user_metadata?.role || 'customer';
           
@@ -128,7 +126,6 @@ const Login = () => {
           navigate('/dashboard');
         }
       } catch (err) {
-        console.error('Erro ao verificar perfil:', err);
         // Em caso de erro, manda para o dashboard como fallback
         navigate('/dashboard');
       }

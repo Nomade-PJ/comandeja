@@ -102,7 +102,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar>
+    <Sidebar className="hidden md:flex">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-3 py-4">
           <div className="w-10 h-10 bg-gradient-brand rounded-lg flex items-center justify-center">

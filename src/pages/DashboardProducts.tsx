@@ -1,12 +1,11 @@
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useState, useEffect } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   Plus, Search, Filter, FolderPlus, Edit, Trash2,
-  ArrowUp, ArrowDown, GripVertical, Store, Package
+  ArrowUp, ArrowDown, GripVertical, Store, Package, ChevronDown, ChevronUp, Eye
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +67,8 @@ const DashboardProducts = () => {
   const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState(false);
+  const [expandedProducts, setExpandedProducts] = useState<{[key: string]: boolean}>({});
+  const [expandedCategories, setExpandedCategories] = useState<{[key: string]: boolean}>({});
 
   const { products, loading: productsLoading } = useProducts();
   const { categories, loading: categoriesLoading, moveCategory, reorderCategories } = useCategories();
@@ -131,459 +132,720 @@ const DashboardProducts = () => {
     reorderCategories(reorderedIds);
   };
 
+  const toggleProductDetails = (productId: string) => {
+    setExpandedProducts(prev => ({
+      ...prev,
+      [productId]: !prev[productId]
+    }));
+  };
+  
+  const toggleCategoryDetails = (categoryId: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
+  };
+
   if (productsLoading || categoriesLoading) {
     return (
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-gray-50">
-          <AppSidebar />
-          <main className="flex-1 flex flex-col">
-            <DashboardHeader />
-            <div className="flex-1 p-6">
-              <div className="flex items-center justify-center h-64">
-                <p className="text-gray-500">Carregando...</p>
-              </div>
-            </div>
-          </main>
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-500">Carregando...</p>
         </div>
-      </SidebarProvider>
+      </DashboardLayout>
     );
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar />
-        <main className="flex-1 flex flex-col">
-          <DashboardHeader />
-          <div className="flex-1 p-6">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-3xl font-bold tracking-tight">Cardápio</h2>
-                  <p className="text-muted-foreground">
-                    Gerencie os produtos e categorias do seu restaurante
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {activeTab === "produtos" ? (
-                    <Button 
-                      className="bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white"
-                      onClick={() => setShowNewProductModal(true)}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Novo Produto
-                    </Button>
-                  ) : (
-                    <Button 
-                      className="bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white"
-                      onClick={() => setShowNewCategoryModal(true)}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Nova Categoria
-                    </Button>
-                  )}
+    <DashboardLayout>
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Cardápio</h2>
+            <p className="text-sm text-muted-foreground">
+              Gerencie os produtos e categorias do seu restaurante
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {activeTab === "produtos" ? (
+              <Button 
+                className="bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white text-sm sm:text-base w-full sm:w-auto"
+                onClick={() => setShowNewProductModal(true)}
+              >
+                <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+                Novo Produto
+              </Button>
+            ) : (
+              <Button 
+                className="bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white text-sm sm:text-base w-full sm:w-auto"
+                onClick={() => setShowNewCategoryModal(true)}
+              >
+                <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+                Nova Categoria
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <Tabs 
+          defaultValue="produtos" 
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-4 sm:space-y-6"
+        >
+          <TabsList className="grid grid-cols-2 w-full sm:w-[400px]">
+            <TabsTrigger value="produtos" className="flex items-center gap-1 sm:gap-2 text-sm">
+              <Package className="w-3 h-3 sm:w-4 sm:h-4" />
+              Produtos
+            </TabsTrigger>
+            <TabsTrigger value="categorias" className="flex items-center gap-1 sm:gap-2 text-sm">
+              <FolderPlus className="w-3 h-3 sm:w-4 sm:h-4" />
+              Categorias
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Tab de Produtos */}
+          <TabsContent value="produtos" className="space-y-4 sm:space-y-6">
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar produtos..."
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button type="submit" className="flex-1 sm:flex-auto">
+                  Buscar
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => setShowFiltersModal(true)}
+                  className="flex-1 sm:flex-auto"
+                >
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filtros
+                </Button>
+              </div>
+            </form>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <Card>
+                <CardHeader className="p-3 sm:p-4">
+                  <CardTitle className="text-base sm:text-lg">Total de Produtos</CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 sm:p-4 pt-0">
+                  <div className="text-2xl sm:text-3xl font-bold">{products.length}</div>
+                  <p className="text-xs text-muted-foreground">produtos cadastrados</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="p-3 sm:p-4">
+                  <CardTitle className="text-base sm:text-lg">Produtos Ativos</CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 sm:p-4 pt-0">
+                  <div className="text-2xl sm:text-3xl font-bold">
+                    {products.filter(p => p.is_active).length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">produtos disponíveis</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="p-3 sm:p-4">
+                  <CardTitle className="text-base sm:text-lg">Produtos em Destaque</CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 sm:p-4 pt-0">
+                  <div className="text-2xl sm:text-3xl font-bold">
+                    {products.filter(p => p.is_featured).length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">produtos em destaque</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {filteredProducts.length === 0 ? (
+              <div className="text-center py-12">
+                <Store className="mx-auto h-12 w-12 text-gray-300" />
+                <h3 className="mt-2 text-lg font-medium text-gray-900">Nenhum produto encontrado</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Comece adicionando um novo produto ao seu cardápio.
+                </p>
+                <div className="mt-6">
+                  <Button 
+                    onClick={() => setShowNewProductModal(true)}
+                    className="bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Produto
+                  </Button>
                 </div>
               </div>
-
-              <Tabs 
-                defaultValue="produtos" 
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="space-y-6"
-              >
-                <TabsList className="grid grid-cols-2 w-[400px]">
-                  <TabsTrigger value="produtos" className="flex items-center gap-2">
-                    <Package className="w-4 h-4" />
-                    Produtos
-                  </TabsTrigger>
-                  <TabsTrigger value="categorias" className="flex items-center gap-2">
-                    <FolderPlus className="w-4 h-4" />
-                    Categorias
-                  </TabsTrigger>
-                </TabsList>
-
-                {/* Tab de Produtos */}
-                <TabsContent value="produtos" className="space-y-6">
-                  <form onSubmit={handleSearch} className="flex items-center gap-4">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Buscar produtos..."
-                        className="pl-10"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                    </div>
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      onClick={() => setShowFiltersModal(true)}
-                    >
-                      <Filter className="w-4 h-4 mr-2" />
-                      Filtros
-                    </Button>
-                  </form>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Total de Produtos</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold">{products.length}</div>
-                        <p className="text-xs text-muted-foreground">produtos cadastrados</p>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Produtos Ativos</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold">
-                          {products.filter(p => p.is_active).length}
-                        </div>
-                        <p className="text-xs text-muted-foreground">produtos disponíveis</p>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Categorias</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold">{categories.length}</div>
-                        <p className="text-xs text-muted-foreground">categorias criadas</p>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Em Destaque</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold">
-                          {products.filter(p => p.is_featured).length}
-                        </div>
-                        <p className="text-xs text-muted-foreground">produtos em destaque</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Lista de Produtos</CardTitle>
-                      <CardDescription>
-                        Gerencie todos os produtos do seu cardápio
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {filteredProducts.length === 0 ? (
-                        <div className="text-center py-12">
-                          <p className="text-gray-500 text-lg">
-                            {products.length === 0 ? "Nenhum produto cadastrado" : "Nenhum produto encontrado"}
-                          </p>
-                          <p className="text-gray-400 text-sm mt-2">
-                            {products.length === 0 ? "Comece criando categorias e produtos" : "Tente ajustar sua busca"}
-                          </p>
-                          {products.length === 0 && (
-                            <div className="flex items-center justify-center gap-4 mt-4">
+            ) : (
+              <>
+                {/* Versão mobile (cards) */}
+                <div className="sm:hidden space-y-3 px-1">
+                  {filteredProducts.map((product) => {
+                    const category = categories.find(c => c.id === product.category_id);
+                    const isExpanded = expandedProducts[product.id] || false;
+                    
+                    return (
+                      <Card key={product.id} className="overflow-hidden border shadow-sm">
+                        <div className="p-3">
+                          <div className="flex items-center gap-3">
+                            {product.image_url ? (
+                              <div className="h-14 w-14 flex-shrink-0 rounded bg-gray-100">
+                                <img 
+                                  src={product.image_url} 
+                                  alt={product.name}
+                                  className="h-14 w-14 object-cover rounded" 
+                                />
+                              </div>
+                            ) : (
+                              <div className="h-14 w-14 flex-shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-500">
+                                <Package className="h-6 w-6" />
+                              </div>
+                            )}
+                            
+                            <div className="flex-1">
+                              <h3 className="font-medium">{product.name}</h3>
+                              <div className="text-lg font-bold">{formatPrice(product.price)}</div>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-2 space-y-2">
+                            <div className="flex flex-wrap gap-1">
+                              <Badge variant={product.is_active ? "default" : "secondary"}>
+                                {product.is_active ? "Ativo" : "Inativo"}
+                              </Badge>
+                              {product.is_featured && (
+                                <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+                                  Destaque
+                                </Badge>
+                              )}
+                              {category && (
+                                <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+                                  {category.name}
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {isExpanded && (
+                              <div className="mt-3 p-3 bg-gray-50 rounded-md text-sm text-gray-700 border border-gray-100 space-y-3">
+                                {product.description && (
+                                  <div>
+                                    <h4 className="font-medium text-gray-900 mb-1">Descrição</h4>
+                                    <p className="text-gray-700">{product.description}</p>
+                                  </div>
+                                )}
+                                
+                                <div className="grid grid-cols-2 gap-2">
+                                  {product.preparation_time > 0 && (
+                                    <div>
+                                      <h4 className="font-medium text-gray-900 mb-1">Tempo de preparo</h4>
+                                      <p className="flex items-center text-gray-700">
+                                        {product.preparation_time} minutos
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  {category && (
+                                    <div>
+                                      <h4 className="font-medium text-gray-900 mb-1">Categoria</h4>
+                                      <p className="text-gray-700">{category.name}</p>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h4 className="font-medium text-gray-900 mb-1">Status</h4>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`w-2 h-2 rounded-full ${product.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                                      <span>{product.is_active ? 'Ativo' : 'Inativo'}</span>
+                                      {product.is_featured && (
+                                        <span className="text-amber-600 ml-2 text-xs">• Em destaque</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="text-right">
+                                    <h4 className="font-medium text-gray-900 mb-1">Preço</h4>
+                                    <p className="font-bold text-gray-900">{formatPrice(product.price)}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="mt-3 flex items-center gap-2 justify-between">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => toggleProductDetails(product.id)}
+                              className="flex-1"
+                            >
+                              {isExpanded ? (
+                                <>
+                                  <ChevronUp className="h-3 w-3 mr-1" />
+                                  Ocultar detalhes
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  Ver detalhes
+                                </>
+                              )}
+                            </Button>
+                            
+                            <div className="flex gap-1">
                               <Button 
-                                variant="outline"
-                                onClick={() => {
-                                  setActiveTab("categorias");
-                                  setShowNewCategoryModal(true);
-                                }}
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => handleEditProduct(product)}
                               >
-                                <FolderPlus className="w-4 h-4 mr-2" />
-                                Criar Categoria
+                                <Edit className="h-3 w-3" />
                               </Button>
                               <Button 
-                                className="bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white"
-                                onClick={() => setShowNewProductModal(true)}
+                                size="sm" 
+                                variant="ghost" 
+                                className="text-red-500"
+                                onClick={() => handleDeleteProduct(product)}
                               >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Criar Primeiro Produto
+                                <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>
-                          )}
+                          </div>
                         </div>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {filteredProducts.map((product) => {
-                            const category = categories.find(c => c.id === product.category_id);
-                            return (
-                                                              <Card key={product.id} className="relative group">
-                                <CardContent className="p-4">
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {/* Versão desktop (tabela) */}
+                <div className="hidden sm:block">
+                  <div className="rounded-md border overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Produto
+                          </th>
+                          <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Preço
+                          </th>
+                          <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Categoria
+                          </th>
+                          <th scope="col" className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Ações
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredProducts.map((product) => {
+                          const category = categories.find(c => c.id === product.category_id);
+                          return (
+                            <tr key={product.id}>
+                              <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
+                                <div className="flex items-center">
                                   {product.image_url ? (
-                                    <div className="w-full h-32 rounded-md mb-3 overflow-hidden">
-                                      <img
-                                        src={product.image_url}
+                                    <div className="h-10 w-10 flex-shrink-0 rounded bg-gray-100">
+                                      <img 
+                                        src={product.image_url} 
                                         alt={product.name}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Imagem+Inválida';
-                                        }}
+                                        className="h-10 w-10 object-cover rounded" 
                                       />
                                     </div>
                                   ) : (
-                                    <div className="w-full h-32 bg-gray-100 rounded-md mb-3 flex items-center justify-center">
-                                      <Package className="w-10 h-10 text-gray-300" />
+                                    <div className="h-10 w-10 flex-shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-500">
+                                      <Package className="h-5 w-5" />
                                     </div>
                                   )}
-                                  <div className="space-y-2">
-                                    <div className="flex items-start justify-between">
-                                      <h3 className="font-semibold text-lg">{product.name}</h3>
-                                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button 
-                                          size="sm" 
-                                          variant="outline" 
-                                          onClick={() => handleEditProduct(product)}
-                                        >
-                                          <Edit className="w-3 h-3" />
-                                        </Button>
-                                        <Button 
-                                          size="sm" 
-                                          variant="outline"
-                                          onClick={() => handleDeleteProduct(product)}
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </Button>
+                                  <div className="ml-2 sm:ml-4">
+                                    <div className="text-xs sm:text-sm font-medium text-gray-900">
+                                      {product.name}
+                                    </div>
+                                    {product.description && (
+                                      <div className="text-xs text-gray-500 truncate max-w-[200px]">
+                                        {product.description}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
+                                {formatPrice(product.price)}
+                              </td>
+                              <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
+                                <Badge variant={product.is_active ? "default" : "secondary"}>
+                                  {product.is_active ? "Ativo" : "Inativo"}
+                                </Badge>
+                                {product.is_featured && (
+                                  <Badge variant="outline" className="ml-2 border-amber-200 bg-amber-50 text-amber-700">
+                                    Destaque
+                                  </Badge>
+                                )}
+                              </td>
+                              <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                                {category?.name || "-"}
+                              </td>
+                              <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
+                                <div className="flex justify-end gap-1 sm:gap-2">
+                                  <Button 
+                                    size="icon" 
+                                    variant="ghost"
+                                    onClick={() => handleEditProduct(product)}
+                                    className="h-7 w-7 sm:h-8 sm:w-8"
+                                  >
+                                    <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                                  </Button>
+                                  <Button 
+                                    size="icon" 
+                                    variant="ghost" 
+                                    className="text-red-500 h-7 w-7 sm:h-8 sm:w-8"
+                                    onClick={() => handleDeleteProduct(product)}
+                                  >
+                                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+          </TabsContent>
+
+          {/* Tab de Categorias */}
+          <TabsContent value="categorias" className="space-y-4 sm:space-y-6">
+            {categories.length === 0 ? (
+              <div className="text-center py-12">
+                <FolderPlus className="mx-auto h-12 w-12 text-gray-300" />
+                <h3 className="mt-2 text-lg font-medium text-gray-900">Nenhuma categoria encontrada</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Comece adicionando uma categoria para organizar seus produtos.
+                </p>
+                <div className="mt-6">
+                  <Button 
+                    onClick={() => setShowNewCategoryModal(true)}
+                    className="bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Categoria
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Versão mobile (cards) */}
+                <div className="sm:hidden space-y-3 px-1">
+                  {categories
+                    .sort((a, b) => a.display_order - b.display_order)
+                    .map((category) => {
+                      const productCount = products.filter(p => p.category_id === category.id).length;
+                      const isExpanded = expandedCategories[category.id] || false;
+                      
+                      return (
+                        <Card key={category.id} className="overflow-hidden border shadow-sm">
+                          <div className="p-3">
+                            <div className="flex items-center gap-3">
+                              {category.image_url ? (
+                                <div className="h-12 w-12 flex-shrink-0 rounded bg-gray-100">
+                                  <img 
+                                    src={category.image_url} 
+                                    alt={category.name}
+                                    className="h-12 w-12 object-cover rounded" 
+                                  />
+                                </div>
+                              ) : (
+                                <div className="h-12 w-12 flex-shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-500">
+                                  <FolderPlus className="h-5 w-5" />
+                                </div>
+                              )}
+                              <div>
+                                <h3 className="font-medium">{category.name}</h3>
+                                <div className="text-sm text-gray-500">
+                                  {productCount} produto{productCount !== 1 ? 's' : ''}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-2">
+                              <Badge variant={category.is_active ? "default" : "secondary"}>
+                                {category.is_active ? "Ativa" : "Inativa"}
+                              </Badge>
+                              
+                              {isExpanded && category.description && (
+                                <div className="mt-3 p-3 bg-gray-50 rounded-md text-sm text-gray-700 border border-gray-100 space-y-3">
+                                  <div>
+                                    <h4 className="font-medium text-gray-900 mb-1">Descrição</h4>
+                                    <p className="text-gray-700">{category.description}</p>
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <h4 className="font-medium text-gray-900 mb-1">Status</h4>
+                                      <div className="flex items-center gap-2">
+                                        <span className={`w-2 h-2 rounded-full ${category.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                                        <span>{category.is_active ? 'Ativa' : 'Inativa'}</span>
                                       </div>
                                     </div>
-                                    <p className="text-2xl font-bold text-brand-600">
-                                      {formatPrice(product.price)}
-                                    </p>
-                                    {product.description && (
-                                      <p className="text-sm text-gray-600 line-clamp-2">
-                                        {product.description}
+                                    
+                                    <div className="text-right">
+                                      <h4 className="font-medium text-gray-900 mb-1">Produtos</h4>
+                                      <p className="font-bold text-gray-900">
+                                        {productCount} {productCount === 1 ? 'produto' : 'produtos'}
                                       </p>
-                                    )}
-                                    <div className="flex flex-wrap gap-1">
-                                      {category && (
-                                        <Badge variant="secondary">{category.name}</Badge>
-                                      )}
-                                      {product.is_featured && (
-                                        <Badge className="bg-yellow-100 text-yellow-800">Destaque</Badge>
-                                      )}
-                                      <Badge variant={product.is_active ? "default" : "destructive"}>
-                                        {product.is_active ? "Ativo" : "Inativo"}
-                                      </Badge>
                                     </div>
-                                    <p className="text-xs text-gray-500">
-                                      Preparo: {product.preparation_time} min
-                                    </p>
                                   </div>
-                                </CardContent>
-                              </Card>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* Tab de Categorias */}
-                <TabsContent value="categorias" className="space-y-6">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Total de Categorias</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold">{categories.length}</div>
-                        <p className="text-xs text-muted-foreground">categorias criadas</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Organizar Categorias</CardTitle>
-                      <CardDescription>
-                        Reordene suas categorias para mudar como elas aparecem no cardápio para o cliente
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {categories.length === 0 ? (
-                        <div className="text-center py-12">
-                          <p className="text-gray-500 text-lg">Nenhuma categoria cadastrada</p>
-                          <p className="text-gray-400 text-sm mt-2">Comece criando categorias para o seu cardápio</p>
-                          <div className="flex items-center justify-center mt-4">
-                            <Button 
-                              className="bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white"
-                              onClick={() => setShowNewCategoryModal(true)}
-                            >
-                              <FolderPlus className="w-4 h-4 mr-2" />
-                              Criar Primeira Categoria
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="text-sm text-muted-foreground mb-4">
-                            Arraste as categorias ou use os botões para reorganizar a ordem. A ordem aqui será a mesma exibida no cardápio do cliente.
-                          </div>
-                          <DragDropContext onDragEnd={handleDragEnd}>
-                            <Droppable droppableId="categoriesList">
-                              {(provided) => (
-                                <div 
-                                  className="grid gap-2"
-                                  {...provided.droppableProps}
-                                  ref={provided.innerRef}
+                                  
+                                  {category.created_at && (
+                                    <div>
+                                      <h4 className="font-medium text-gray-900 mb-1">Criada em</h4>
+                                      <p className="text-gray-700">
+                                        {format(new Date(category.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="mt-3 flex items-center gap-2 justify-between">
+                              {category.description && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => toggleCategoryDetails(category.id)}
+                                  className="flex-1"
                                 >
-                                  {categories
-                                    .sort((a, b) => a.display_order - b.display_order)
-                                    .map((category, index) => (
+                                  {isExpanded ? (
+                                    <>
+                                      <ChevronUp className="h-3 w-3 mr-1" />
+                                      Ocultar detalhes
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Eye className="h-3 w-3 mr-1" />
+                                      Ver detalhes
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                              
+                              <div className={`flex gap-1 ${!category.description ? 'ml-auto' : ''}`}>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost"
+                                  onClick={() => handleEditCategory(category)}
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="text-red-500"
+                                  onClick={() => handleDeleteCategory(category)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                </div>
+
+                {/* Versão desktop (tabela arrastável) */}
+                <div className="hidden sm:block">
+                  <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId="categorias">
+                      {(provided) => (
+                        <div 
+                          className="rounded-md border overflow-hidden"
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                        >
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
+                                  #
+                                </th>
+                                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Categoria
+                                </th>
+                                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Status
+                                </th>
+                                <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Produtos
+                                </th>
+                                <th scope="col" className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Ações
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {categories
+                                .sort((a, b) => a.display_order - b.display_order)
+                                .map((category, index) => {
+                                  const productCount = products.filter(p => p.category_id === category.id).length;
+                                  return (
                                     <Draggable 
                                       key={category.id} 
                                       draggableId={category.id} 
                                       index={index}
                                     >
-                                      {(provided, snapshot) => (
-                                        <div 
+                                      {(provided) => (
+                                        <tr
                                           ref={provided.innerRef}
                                           {...provided.draggableProps}
-                                          className={`p-4 border rounded-md shadow-sm bg-white flex items-center justify-between ${snapshot.isDragging ? 'bg-gray-50' : ''}`}
                                         >
-                                          <div className="flex items-center gap-3 flex-grow">
+                                          <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
                                             <div 
-                                              {...provided.dragHandleProps} 
-                                              className="text-gray-400 cursor-grab"
+                                              className="flex items-center justify-center cursor-grab"
+                                              {...provided.dragHandleProps}
                                             >
-                                              <GripVertical className="w-5 h-5" />
+                                              <GripVertical className="h-4 w-4 text-gray-400" />
                                             </div>
-                                            {category.image_url ? (
-                                              <div className="w-12 h-12 relative rounded-md overflow-hidden border">
-                                                <img
-                                                  src={category.image_url}
-                                                  alt={category.name}
-                                                  className="w-full h-full object-cover"
-                                                  onError={(e) => {
-                                                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Imagem+Inválida';
-                                                  }}
-                                                />
-                                              </div>
-                                            ) : (
-                                              <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center">
-                                                <FolderPlus className="w-6 h-6 text-gray-400" />
-                                              </div>
-                                            )}
-                                            <div className="flex-grow">
-                                              <h3 className="font-medium">{category.name}</h3>
-                                              {category.description && (
-                                                <p className="text-sm text-gray-500 line-clamp-1">{category.description}</p>
+                                          </td>
+                                          <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                              {category.image_url ? (
+                                                <div className="h-8 w-8 flex-shrink-0 rounded bg-gray-100">
+                                                  <img 
+                                                    src={category.image_url} 
+                                                    alt={category.name}
+                                                    className="h-8 w-8 object-cover rounded" 
+                                                  />
+                                                </div>
+                                              ) : (
+                                                <div className="h-8 w-8 flex-shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-500">
+                                                  <FolderPlus className="h-4 w-4" />
+                                                </div>
                                               )}
-                                              <div className="flex items-center gap-2 mt-1">
-                                                <Badge variant={category.is_active ? "default" : "destructive"}>
-                                                  {category.is_active ? "Ativa" : "Inativa"}
-                                                </Badge>
-                                                <span className="text-xs text-muted-foreground">
-                                                  Criada em {format(new Date(category.created_at), "dd MMM yyyy", { locale: ptBR })}
-                                                </span>
+                                              <div className="ml-2 sm:ml-4">
+                                                <div className="text-xs sm:text-sm font-medium text-gray-900">
+                                                  {category.name}
+                                                </div>
+                                                {category.description && (
+                                                  <div className="text-xs text-gray-500 truncate max-w-[200px]">
+                                                    {category.description}
+                                                  </div>
+                                                )}
                                               </div>
                                             </div>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            <div className="flex flex-col gap-1">
+                                          </td>
+                                          <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
+                                            <Badge variant={category.is_active ? "default" : "secondary"}>
+                                              {category.is_active ? "Ativa" : "Inativa"}
+                                            </Badge>
+                                          </td>
+                                          <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                                            {productCount} produto{productCount !== 1 ? 's' : ''}
+                                          </td>
+                                          <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
+                                            <div className="flex justify-end gap-1 sm:gap-2">
                                               <Button 
-                                                variant="ghost" 
-                                                size="sm"
-                                                disabled={index === 0}
-                                                onClick={() => handleMoveCategory(category.id, 'up')}
-                                                className="px-1 h-8"
-                                              >
-                                                <ArrowUp className="w-5 h-5" />
-                                              </Button>
-                                              <Button 
-                                                variant="ghost" 
-                                                size="sm"
-                                                disabled={index === categories.length - 1} 
-                                                onClick={() => handleMoveCategory(category.id, 'down')}
-                                                className="px-1 h-8"
-                                              >
-                                                <ArrowDown className="w-5 h-5" />
-                                              </Button>
-                                            </div>
-                                            <div className="flex items-center gap-1 ml-2">
-                                              <Button 
-                                                variant="outline" 
-                                                size="sm"
-                                                className="h-9 px-2"
+                                                size="icon" 
+                                                variant="ghost"
+                                                className="h-7 w-7 sm:h-8 sm:w-8"
                                                 onClick={() => handleEditCategory(category)}
                                               >
-                                                <Edit className="w-4 h-4" />
+                                                <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                                               </Button>
                                               <Button 
-                                                variant="destructive" 
-                                                size="sm"
-                                                className="h-9 px-2"
+                                                size="icon" 
+                                                variant="ghost" 
+                                                className="text-red-500 h-7 w-7 sm:h-8 sm:w-8"
                                                 onClick={() => handleDeleteCategory(category)}
                                               >
-                                                <Trash2 className="w-4 h-4" />
+                                                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                                               </Button>
                                             </div>
-                                          </div>
-                                        </div>
+                                          </td>
+                                        </tr>
                                       )}
                                     </Draggable>
-                                  ))}
-                                  {provided.placeholder}
-                                </div>
-                              )}
-                            </Droppable>
-                          </DragDropContext>
+                                  );
+                                })}
+                              {provided.placeholder}
+                            </tbody>
+                          </table>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </div>
-          </div>
-        </main>
+                    </Droppable>
+                  </DragDropContext>
+                </div>
+              </>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* Modais de Produtos */}
-      <NewProductModal 
-        open={showNewProductModal} 
-        onOpenChange={setShowNewProductModal} 
-      />
-      <EditProductModal 
-        open={showEditProductModal} 
-        onOpenChange={setShowEditProductModal} 
-        product={editingProduct}
-      />
-      <DeleteProductModal 
-        open={showDeleteProductModal} 
-        onOpenChange={setShowDeleteProductModal} 
-        product={deletingProduct}
-      />
-
-      {/* Modais de Categorias */}
-      <NewCategoryModal 
-        open={showNewCategoryModal} 
-        onOpenChange={setShowNewCategoryModal} 
-      />
-      <EditCategoryModal 
-        open={showEditCategoryModal}
-        onOpenChange={setShowEditCategoryModal}
-        category={editingCategory}
-      />
-      <DeleteCategoryModal 
-        open={showDeleteCategoryModal}
-        onOpenChange={setShowDeleteCategoryModal}
-        category={deletingCategory}
-      />
-      
-      {/* Outros Modais */}
-      <FiltersModal 
-        open={showFiltersModal} 
-        onOpenChange={setShowFiltersModal}
-        type="products"
-      />
-    </SidebarProvider>
+      {/* Modais */}
+      {showNewProductModal && (
+        <NewProductModal 
+          open={showNewProductModal} 
+          onOpenChange={setShowNewProductModal}
+        />
+      )}
+      {showNewCategoryModal && (
+        <NewCategoryModal 
+          open={showNewCategoryModal} 
+          onOpenChange={setShowNewCategoryModal} 
+        />
+      )}
+      {showFiltersModal && (
+        <FiltersModal 
+          open={showFiltersModal} 
+          onOpenChange={setShowFiltersModal}
+          type="products"
+        />
+      )}
+      {showEditProductModal && editingProduct && (
+        <EditProductModal
+          open={showEditProductModal}
+          onOpenChange={setShowEditProductModal}
+          product={editingProduct}
+        />
+      )}
+      {showDeleteProductModal && deletingProduct && (
+        <DeleteProductModal
+          open={showDeleteProductModal}
+          onOpenChange={setShowDeleteProductModal}
+          product={deletingProduct}
+        />
+      )}
+      {showEditCategoryModal && editingCategory && (
+        <EditCategoryModal
+          open={showEditCategoryModal}
+          onOpenChange={setShowEditCategoryModal}
+          category={editingCategory}
+        />
+      )}
+      {showDeleteCategoryModal && deletingCategory && (
+        <DeleteCategoryModal
+          open={showDeleteCategoryModal}
+          onOpenChange={setShowDeleteCategoryModal}
+          category={deletingCategory}
+        />
+      )}
+    </DashboardLayout>
   );
 };
 

@@ -1,7 +1,8 @@
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useState, useEffect } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
+
+
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,27 +145,14 @@ const DashboardSettings = () => {
 
   if (loading) {
     return (
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-gray-50">
-          <AppSidebar />
-          <main className="flex-1 flex flex-col">
-            <DashboardHeader />
-            <div className="flex-1 p-6 flex items-center justify-center">
+      <DashboardLayout>
               <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-brand-600"></div>
-            </div>
-          </main>
-        </div>
-      </SidebarProvider>
+            </DashboardLayout>
     );
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar />
-        <main className="flex-1 flex flex-col">
-          <DashboardHeader />
-          <div className="flex-1 p-6">
+    <DashboardLayout>
             <form onSubmit={handleSaveSettings}>
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -483,10 +471,7 @@ const DashboardSettings = () => {
                 </Tabs>
               </div>
             </form>
-          </div>
-        </main>
-      </div>
-    </SidebarProvider>
+          </DashboardLayout>
   );
 };
 

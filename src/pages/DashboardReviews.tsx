@@ -1,19 +1,12 @@
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Star, MessageSquare } from "lucide-react";
 
 const DashboardReviews = () => {
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar />
-        <main className="flex-1 flex flex-col">
-          <DashboardHeader />
-          <div className="flex-1 p-6">
+    <DashboardLayout>
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -85,10 +78,7 @@ const DashboardReviews = () => {
                 </CardContent>
               </Card>
             </div>
-          </div>
-        </main>
-      </div>
-    </SidebarProvider>
+          </DashboardLayout>
   );
 };
 

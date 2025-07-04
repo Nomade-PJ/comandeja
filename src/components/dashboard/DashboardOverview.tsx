@@ -7,11 +7,10 @@ import RecentOrders from "@/components/dashboard/RecentOrders";
 import SalesChart from "@/components/dashboard/SalesChart";
 import TopProducts from "@/components/dashboard/TopProducts";
 import { useRestaurant } from "@/hooks/useRestaurant";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
-import { formatCurrency } from "@/lib/utils";
 import { realtimeService } from "@/integrations/supabase/realtimeService";
-import { Loader2, AlertTriangle, WifiOff, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface DashboardOverviewProps {
@@ -19,16 +18,13 @@ interface DashboardOverviewProps {
 }
 
 const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
-  const { restaurant, loading: restaurantLoading, error: restaurantError } = useRestaurant();
-  const { loading: statsLoading, stats, error: statsError, refreshStats } = useDashboardStats();
+  const { restaurant } = useRestaurant();
+  const { stats, error: statsError, refetch } = useDashboardStats();
 
   // Registrar handler de erro para o serviço de realtime e tentar reconectar silenciosamente
   useEffect(() => {
     const handleReconnect = () => {
-      // Tentar reconectar silenciosamente sem mostrar erro ao usuário
-      setTimeout(() => {
-        refreshStats?.();
-      }, 2000);
+      refetch?.();
     };
     
     const removeHandler = realtimeService.onError(handleReconnect);
@@ -36,67 +32,26 @@ const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
     return () => {
       removeHandler();
     };
-  }, [refreshStats]);
-
-  // Detectar possíveis problemas com os dados e tentar reconectar silenciosamente
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    // Só iniciar o timeout após o carregamento inicial
-    if (!restaurantLoading && !statsLoading) {
-      timeoutId = setTimeout(() => {
-        if (!stats || (stats.todaySales.value === formatCurrency(0) && stats.todayOrders.value === '0')) {
-          // Tentar atualizar os dados silenciosamente
-          refreshStats?.();
-        }
-      }, 15000); // Aumentado para 15 segundos
-    }
-
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [restaurantLoading, statsLoading, stats, refreshStats]);
-
-  // Mostrar tela de carregamento enquanto carrega dados iniciais
-  if (restaurantLoading || statsLoading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-brand-600 mb-4"></div>
-        <h2 className="text-xl font-medium text-gray-800 mb-2">Carregando dashboard</h2>
-        <p className="text-sm text-gray-500">
-          {restaurantLoading 
-            ? "Carregando dados do restaurante..." 
-            : statsLoading 
-              ? "Carregando estatísticas..." 
-              : "Preparando sistema..."}
-        </p>
-      </div>
-    );
-  }
+  }, [refetch]);
 
   // Mostrar mensagem de erro se houver falha no carregamento
-  if (restaurantError || statsError) {
+  if (statsError) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-        <Alert className="max-w-lg mx-auto border-red-200 bg-red-50">
-          <AlertTriangle className="h-5 w-5 text-red-600" />
-          <AlertTitle className="text-red-800">Erro ao carregar dados</AlertTitle>
-          <AlertDescription className="text-red-700">
-            <p className="mb-4">Ocorreu um erro ao carregar os dados do dashboard. Por favor, tente novamente.</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="bg-red-100 border-red-300 text-red-800 hover:bg-red-200"
-              onClick={() => window.location.reload()}
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Tentar novamente
-            </Button>
-          </AlertDescription>
-        </Alert>
-      </div>
+      <Alert className="max-w-lg mx-auto border-red-200 bg-red-50">
+        <AlertTitle className="text-red-800">Erro ao carregar dados</AlertTitle>
+        <AlertDescription className="text-red-700">
+          <p className="mb-4">Ocorreu um erro ao carregar os dados do dashboard. Por favor, tente novamente.</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="bg-red-100 border-red-300 text-red-800 hover:bg-red-200"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Tentar novamente
+          </Button>
+        </AlertDescription>
+      </Alert>
     );
   }
 
@@ -134,10 +89,12 @@ const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
           <TopProducts />
         </div>
       </div>
-      
-      <RecentOrders />
+
+      <div className="grid gap-6 grid-cols-1">
+        <RecentOrders />
+      </div>
     </div>
   );
-};
+}
 
 export default DashboardOverview;
