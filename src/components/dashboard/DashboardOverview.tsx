@@ -7,7 +7,7 @@ import RecentOrders from "@/components/dashboard/RecentOrders";
 import SalesChart from "@/components/dashboard/SalesChart";
 import TopProducts from "@/components/dashboard/TopProducts";
 import { useRestaurant } from "@/hooks/useRestaurant";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { realtimeService } from "@/integrations/supabase/realtimeService";
 import { RefreshCw } from "lucide-react";
@@ -19,8 +19,22 @@ interface DashboardOverviewProps {
 }
 
 const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
-  const { restaurant } = useRestaurant();
+  const { restaurant, loading } = useRestaurant();
   const { stats, error: statsError, refetch } = useDashboardStats();
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
+  // Verificar se o restaurante existe (mesmo que parcialmente configurado)
+  const hasRestaurant = restaurant !== null;
+  
+  // Verificar se o restaurante tem slug para mostrar o cardápio
+  const hasRestaurantSlug = restaurant?.slug ? true : false;
+
+  // Marcar quando o carregamento inicial estiver completo
+  useEffect(() => {
+    if (!loading && !initialLoadComplete) {
+      setInitialLoadComplete(true);
+    }
+  }, [loading]);
 
   // Registrar handler de erro para o serviço de realtime e tentar reconectar silenciosamente
   useEffect(() => {
@@ -56,6 +70,16 @@ const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
     );
   }
 
+  // Mostrar um indicador de carregamento enquanto os dados estão sendo buscados
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mb-4"></div>
+        <p className="text-muted-foreground">Carregando informações do restaurante...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -65,7 +89,7 @@ const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
             Aqui está o resumo do seu restaurante hoje.
           </p>
         </div>
-        {restaurant?.slug ? (
+        {hasRestaurantSlug ? (
           <Link to={`/${restaurant.slug}`}>
             <Button className="bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white">
               Ver Cardápio do Cliente
@@ -74,13 +98,14 @@ const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
         ) : (
           <Link to="/configuracoes?tab=restaurant-info">
             <Button className="bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white">
-              Configurar Restaurante
+              {hasRestaurant ? "Completar Configuração" : "Configurar Restaurante"}
             </Button>
           </Link>
         )}
       </div>
 
-      {!restaurant && (
+      {/* Mostrar alerta apenas para usuários totalmente novos (sem nenhum registro de restaurante) e apenas após o carregamento inicial */}
+      {initialLoadComplete && !hasRestaurant && (
         <Alert className="mt-4">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Configuração necessária</AlertTitle>

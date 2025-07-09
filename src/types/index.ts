@@ -37,6 +37,12 @@ export interface Restaurant {
   logo_url?: string;
   banner_url?: string;
   slug: string;
+  social_media?: {
+    instagram?: string;
+    facebook?: string;
+    twitter?: string;
+    website?: string;
+  } | Record<string, string> | null;
 }
 
 export interface Category {

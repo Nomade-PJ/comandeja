@@ -1078,17 +1078,69 @@ const RestaurantView = () => {
                 )}
               </div>
               
-              <div>
-                <h4 className="font-medium text-lg mb-3">Redes Sociais</h4>
-                <div className="flex space-x-3">
-                  <a href="#" className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors">
-                    <Instagram className="w-5 h-5" />
-                  </a>
-                  <a href="#" className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors">
-                    <Facebook className="w-5 h-5" />
-                  </a>
+              {/* Só exibir a seção de redes sociais se houver pelo menos uma rede social cadastrada */}
+              {restaurant.social_media && 
+               typeof restaurant.social_media === 'object' && 
+               (restaurant.social_media.instagram || 
+                restaurant.social_media.facebook || 
+                restaurant.social_media.twitter || 
+                restaurant.social_media.website) && (
+                <div>
+                  <h4 className="font-medium text-lg mb-3">Redes Sociais</h4>
+                  <div className="flex space-x-3">
+                    {restaurant.social_media.instagram && (
+                      <a 
+                        href={restaurant.social_media.instagram.startsWith('http') ? restaurant.social_media.instagram : `https://${restaurant.social_media.instagram}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors"
+                        aria-label="Instagram"
+                      >
+                        <Instagram className="w-5 h-5" />
+                      </a>
+                    )}
+                    {restaurant.social_media.facebook && (
+                      <a 
+                        href={restaurant.social_media.facebook.startsWith('http') ? restaurant.social_media.facebook : `https://${restaurant.social_media.facebook}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors"
+                        aria-label="Facebook"
+                      >
+                        <Facebook className="w-5 h-5" />
+                      </a>
+                    )}
+                    {restaurant.social_media.twitter && (
+                      <a 
+                        href={restaurant.social_media.twitter.startsWith('http') ? restaurant.social_media.twitter : `https://${restaurant.social_media.twitter}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors"
+                        aria-label="Twitter"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                          <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
+                        </svg>
+                      </a>
+                    )}
+                    {restaurant.social_media.website && (
+                      <a 
+                        href={restaurant.social_media.website.startsWith('http') ? restaurant.social_media.website : `https://${restaurant.social_media.website}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors"
+                        aria-label="Website"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="2" y1="12" x2="22" y2="12"></line>
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             
             <div className="border-t border-gray-700 mt-8 pt-6 pb-0 text-center text-gray-400 text-sm">
