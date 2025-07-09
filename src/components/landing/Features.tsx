@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Store, Users, TrendingUp, BarChart3, Clock, Shield } from "lucide-react";
@@ -48,8 +47,9 @@ const Features = () => {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl lg:text-4xl font-bold mb-6">
-            Tudo que seu restaurante precisa
-            <span className="gradient-text block">em uma plataforma</span>
+            <div className="text-gray-900 mb-2">Tudo que seu restaurante</div>
+            <div className="text-gray-900">precisa</div>
+            <span className="text-primary font-bold block mt-2">em uma plataforma</span>
           </h2>
           <p className="text-xl text-gray-600">
             Descubra como o ComandeJá pode transformar a gestão do seu restaurante 
@@ -61,20 +61,20 @@ const Features = () => {
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
-              <Card key={index} className="stat-card hover-lift group">
+              <Card key={index} className="bg-gray-100/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-md transition-all">
                 <CardHeader>
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-brand-100 rounded-lg flex items-center justify-center group-hover:bg-brand-200 transition-colors">
-                      <Icon className="w-6 h-6 text-brand-600" />
+                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Icon className="w-6 h-6 text-primary" />
                     </div>
-                    <Badge variant="secondary" className="bg-brand-100 text-brand-700">
+                    <Badge variant="secondary" className="bg-primary/10 text-primary border-0">
                       {feature.badge}
                     </Badge>
                   </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                  <CardTitle className="text-2xl font-bold text-gray-900">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-gray-600 leading-relaxed">
+                  <CardDescription className="text-gray-600 text-base leading-relaxed">
                     {feature.description}
                   </CardDescription>
                 </CardContent>

@@ -12,6 +12,7 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { realtimeService } from "@/integrations/supabase/realtimeService";
 import { RefreshCw } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface DashboardOverviewProps {
   onRealtimeError?: () => void;
@@ -65,19 +66,32 @@ const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
           </p>
         </div>
         {restaurant?.slug ? (
-          <Link to={`/restaurante/${restaurant.slug}`}>
+          <Link to={`/${restaurant.slug}`}>
             <Button className="bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white">
               Ver Cardápio do Cliente
             </Button>
           </Link>
         ) : (
-          <Link to="/dashboard/settings">
+          <Link to="/configuracoes?tab=restaurant-info">
             <Button className="bg-gradient-brand hover:from-brand-700 hover:to-brand-600 text-white">
               Configurar Restaurante
             </Button>
           </Link>
         )}
       </div>
+
+      {!restaurant && (
+        <Alert className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Configuração necessária</AlertTitle>
+          <AlertDescription>
+            Você ainda não configurou seu restaurante. 
+            <Link to="/configuracoes?tab=restaurant-info" className="ml-1 text-brand-600 hover:text-brand-700 font-medium">
+              Configure agora
+            </Link>.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <StatsCards />
       

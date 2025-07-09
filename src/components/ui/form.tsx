@@ -107,6 +107,12 @@ const FormControl = React.forwardRef<
 >(({ ...props }, ref) => {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
 
+  // Ensure controlled inputs don't receive null/undefined values
+  const safeProps = { ...props };
+  if ('value' in safeProps && (safeProps.value === null || safeProps.value === undefined)) {
+    safeProps.value = '';
+  }
+
   return (
     <Slot
       ref={ref}
@@ -117,7 +123,7 @@ const FormControl = React.forwardRef<
           : `${formDescriptionId} ${formMessageId}`
       }
       aria-invalid={!!error}
-      {...props}
+      {...safeProps}
     />
   )
 })

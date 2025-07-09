@@ -6,6 +6,19 @@ import { startOfMonth, endOfMonth, format } from 'date-fns';
 
 export type ReportPeriod = 'day' | 'week' | 'month' | 'year' | 'custom';
 
+// Adicionar interfaces para os tipos retornados pelo Supabase
+interface OrderItem {
+  id: string;
+  quantity: number;
+  total_price: number;
+  product: {
+    category_id: string;
+    category: {
+      name: string;
+    }[];
+  }[];
+}
+
 export interface ReportData {
   salesReport: {
     totalSales: number;
@@ -173,7 +186,10 @@ export function useReports(period: ReportPeriod = 'month',
           id, 
           quantity, 
           total_price, 
-          product:products(category_id, category:categories(name))
+          product:products(
+            category_id,
+            category:categories(name)
+          )
         `)
         .eq('product.restaurant_id', restaurant.id)
         .gte('created_at', startDateStr)
@@ -189,9 +205,9 @@ export function useReports(period: ReportPeriod = 'month',
       } } = {};
       
       categoriesData?.forEach(item => {
-        if (!item.product || !item.product.category) return;
+        if (!item.product?.[0]?.category?.[0]) return;
         
-        const categoryName = item.product.category.name || 'Sem categoria';
+        const categoryName = item.product[0].category[0].name || 'Sem categoria';
         
         if (!categoriesMap[categoryName]) {
           categoriesMap[categoryName] = { 

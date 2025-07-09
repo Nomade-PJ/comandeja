@@ -26,6 +26,7 @@ interface FiltersModalProps {
 }
 
 const FiltersModal = ({ open, onOpenChange, type, onApplyFilters, initialFilters }: FiltersModalProps) => {
+  // Garantir que os valores iniciais nunca sejam null ou undefined
   const [status, setStatus] = useState(initialFilters?.status || "");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(initialFilters?.dateFrom);
   const [dateTo, setDateTo] = useState<Date | undefined>(initialFilters?.dateTo);
@@ -80,92 +81,105 @@ const FiltersModal = ({ open, onOpenChange, type, onApplyFilters, initialFilters
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Filtros</DialogTitle>
           <DialogDescription>
-            Configure os filtros para refinar sua busca
+            Defina os filtros para {type === "orders" ? "pedidos" : type === "products" ? "produtos" : "clientes"}.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-4 py-4">
           {type === "orders" && (
             <div className="space-y-2">
-              <Label htmlFor="status">Status do Pedido</Label>
+              <Label htmlFor="status">Status</Label>
               <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os status" />
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Selecione um status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os status</SelectItem>
+                  <SelectItem value="">Todos</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="confirmed">Confirmado</SelectItem>
                   <SelectItem value="preparing">Preparando</SelectItem>
                   <SelectItem value="ready">Pronto</SelectItem>
-                  <SelectItem value="out_for_delivery">Em rota</SelectItem>
+                  <SelectItem value="out_for_delivery">Em entrega</SelectItem>
                   <SelectItem value="delivered">Entregue</SelectItem>
                   <SelectItem value="cancelled">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
-          
+
           {type === "products" && (
             <div className="space-y-2">
               <Label htmlFor="category">Categoria</Label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas as categorias" />
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as categorias</SelectItem>
-                  <SelectItem value="pratos-principais">Pratos Principais</SelectItem>
-                  <SelectItem value="entradas">Entradas</SelectItem>
-                  <SelectItem value="sobremesas">Sobremesas</SelectItem>
+                  <SelectItem value="">Todas</SelectItem>
                   <SelectItem value="bebidas">Bebidas</SelectItem>
+                  <SelectItem value="lanches">Lanches</SelectItem>
+                  <SelectItem value="sobremesas">Sobremesas</SelectItem>
+                  <SelectItem value="pratos">Pratos Principais</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Data Inicial</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dateFrom}
-                    onSelect={setDateFrom}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label>Data Final</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dateTo}
-                    onSelect={setDateTo}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+          <div className="space-y-2">
+            <Label>Data Inicial</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateFrom ? (
+                    format(dateFrom, "dd/MM/yyyy", { locale: ptBR })
+                  ) : (
+                    <span>Selecione uma data</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={dateFrom}
+                  onSelect={setDateFrom}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Data Final</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateTo ? (
+                    format(dateTo, "dd/MM/yyyy", { locale: ptBR })
+                  ) : (
+                    <span>Selecione uma data</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={dateTo}
+                  onSelect={setDateTo}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           {(type === "orders" || type === "products") && (

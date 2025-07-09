@@ -5,33 +5,42 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShoppingCart, Star, Clock, MapPin, Search, Phone, Instagram, Facebook, ChevronDown, Info, Heart, UserCircle, Settings, User, Plus, Minus } from "lucide-react";
+import { ShoppingCart, Star, Clock, MapPin, Search, Phone, Instagram, Facebook, ChevronDown, Info, Heart, UserCircle, Settings, User, Plus, Minus, Menu, Package, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { CartDrawer } from '@/components/ui/cart-drawer';
 import { AuthModal } from '@/components/ui/auth-modal';
-import { UserMenu } from '@/components/ui/user-menu';
 import { formatCurrency } from '@/lib/utils';
 import { Restaurant, Category, Product, Profile } from '@/types';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { RestaurantBanner } from '@/components/restaurant/RestaurantBanner';
 
 const RestaurantView = () => {
-  const { slug } = useParams();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
+  const [searchQuery, setSearchQuery] = useState("");
   const { addItem, getItemCount, toggleFavorite, isFavorite } = useCart();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     if (slug) {
@@ -90,6 +99,22 @@ const RestaurantView = () => {
       setLoading(false);
     }
   };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  // Filtra os produtos baseado na busca
+  const filteredProducts = products.filter(product =>
+    (selectedCategory ? product.category_id === selectedCategory : true) &&
+    (product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const featuredProducts = products.filter(product => 
+    product.is_featured && 
+    (selectedCategory ? product.category_id === selectedCategory : true)
+  );
 
   const handleProductClick = (productId: string) => {
     navigate(`/produto/${productId}`);
@@ -237,7 +262,6 @@ const RestaurantView = () => {
 
   const handleToggleFavorite = () => {
     if (!user) {
-      // Se não estiver logado, abrir modal de autenticação
       setIsAuthModalOpen(true);
       return;
     }
@@ -252,14 +276,6 @@ const RestaurantView = () => {
       });
     }
   };
-
-  const filteredProducts = products.filter(product => 
-    (selectedCategory === 'all' || product.category_id === selectedCategory) && 
-    (searchQuery === '' || product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase())))
-  );
-
-  const featuredProducts = products.filter(product => product.is_featured);
 
   // Update the product cards to be clickable
   // This is for the featured products section
@@ -660,184 +676,199 @@ const RestaurantView = () => {
   const primaryColor = '#ff6b35';
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Banner Hero com os botões de favorito e carrinho incorporados */}
-      <div className="relative">
-        {restaurant.banner_url ? (
-          <div 
-            className="h-24 md:h-32 bg-cover bg-center relative"
-            style={{ backgroundImage: `url(${restaurant.banner_url})` }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-              <div className="flex items-center justify-between">
-                <h1 className="text-2xl md:text-3xl font-bold mb-0 drop-shadow-md">{restaurant.name}</h1>
-                <div className="flex items-center space-x-3">
-                  {!user ? (
-                    <button 
-                      className="p-2 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center"
-                      onClick={() => setIsAuthModalOpen(true)}
-                    >
-                      <UserCircle className="w-5 h-5 text-white mr-1" />
-                      <span className="text-white text-sm">Entrar</span>
-                    </button>
-                  ) : (
-                    <>
-                      <UserMenu className="bg-white/20 hover:bg-white/30 backdrop-blur-md p-1" />
-                    </>
-                  )}
-                  <button 
-                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md relative"
-                    onClick={() => setIsCartOpen(true)}
-                  >
-                    <ShoppingCart className="w-5 h-5 text-white" />
-                    <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                      {getItemCount()}
-                    </span>
-                  </button>
-                </div>
-              </div>
-              {restaurant.description && (
-                <p className="text-xs md:text-sm mb-1 max-w-lg drop-shadow-sm line-clamp-1">{restaurant.description}</p>
-              )}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge className="bg-primary hover:bg-primary/90 px-2 py-0.5 text-xs font-medium">
-                  <Star className="w-3 h-3 fill-white mr-1" />
-                  <span>4.8</span>
-                </Badge>
-                <Badge className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-2 py-0.5 text-xs font-medium">
-                  <Clock className="w-3 h-3 mr-1" />
-                  <span>30-45 min</span>
-                </Badge>
-                {restaurant.address && (
-                  <Badge className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-2 py-0.5 text-xs font-medium">
-                    <MapPin className="w-3 h-3 mr-1" />
-                    <span className="truncate max-w-[120px]">{restaurant.address}</span>
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="h-24 md:h-32 bg-gradient-to-r from-primary/90 to-primary/70 relative">
-            <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-              <div className="flex items-center justify-between">
-                <h1 className="text-2xl md:text-3xl font-bold mb-0">{restaurant.name}</h1>
-                <div className="flex items-center space-x-3">
-                  {!user ? (
-                    <button 
-                      className="p-2 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center"
-                      onClick={() => setIsAuthModalOpen(true)}
-                    >
-                      <UserCircle className="w-5 h-5 text-white mr-1" />
-                      <span className="text-white text-sm">Entrar</span>
-                    </button>
-                  ) : (
-                    <>
-                      <UserMenu className="bg-white/20 hover:bg-white/30 backdrop-blur-md p-1" />
-                    </>
-                  )}
-                  <button 
-                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md relative"
-                    onClick={() => setIsCartOpen(true)}
-                  >
-                    <ShoppingCart className="w-5 h-5 text-white" />
-                    <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                      {getItemCount()}
-                    </span>
-                  </button>
-                </div>
-              </div>
-              {restaurant.description && (
-                <p className="text-xs md:text-sm mb-1 max-w-lg opacity-90 line-clamp-1">{restaurant.description}</p>
-              )}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge className="bg-white/20 hover:bg-white/30 text-white px-2 py-0.5 text-xs font-medium">
-                  <Star className="w-3 h-3 fill-white mr-1" />
-                  <span>4.8</span>
-                </Badge>
-                <Badge className="bg-white/20 hover:bg-white/30 text-white px-2 py-0.5 text-xs font-medium">
-                  <Clock className="w-3 h-3 mr-1" />
-                  <span>30-45 min</span>
-                </Badge>
-                {restaurant.address && (
-                  <Badge className="bg-white/20 hover:bg-white/30 text-white px-2 py-0.5 text-xs font-medium">
-                    <MapPin className="w-3 h-3 mr-1" />
-                    <span className="truncate max-w-[120px]">{restaurant.address}</span>
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Barra de Pesquisa */}
-      <div className="bg-white shadow-sm py-4 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4">
+    <>
+      <div className="min-h-screen pb-0">
+        {/* Header fixo */}
+        <div className="sticky top-0 z-50">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              type="text"
-              placeholder="Buscar produtos..."
-              className="pl-10 pr-4 py-2 w-full border-gray-300 focus:ring-primary focus:border-primary rounded-lg"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+            <div className="h-20 md:h-28 bg-gradient-to-r from-green-600 to-green-500 relative">
+              <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
+                {/* Versão mobile: com informações e botão de menu */}
+                <div className="flex justify-between items-center md:hidden">
+                  <div className="flex items-center">
+                    {restaurant.logo_url && (
+                      <div className="w-14 h-14 rounded-full overflow-hidden border-3 border-white mr-3 shadow-lg transform hover:scale-105 transition-transform duration-300">
+                        <img 
+                          src={restaurant.logo_url} 
+                          alt={restaurant.name} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <h1 className="text-xl font-bold drop-shadow-md typewriter overflow-hidden whitespace-nowrap border-r-4 animate-typing-infinite">{restaurant.name}</h1>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <Badge className="bg-white/20 hover:bg-white/30 text-white px-2 py-0.5 text-xs font-medium">
+                          <Star className="w-3 h-3 fill-white mr-1" />
+                          <span>4.8</span>
+                        </Badge>
+                        <Badge className="bg-white/20 hover:bg-white/30 text-white px-2 py-0.5 text-xs font-medium">
+                          <Clock className="w-3 h-3 mr-1" />
+                          <span>30-45 min</span>
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    {!user ? (
+                      <button 
+                        className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center"
+                        onClick={() => setIsAuthModalOpen(true)}
+                      >
+                        <Menu className="w-6 h-6 text-white" />
+                      </button>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center">
+                            <Menu className="w-6 h-6 text-white" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 mr-2">
+                          <DropdownMenuLabel>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{user.user_metadata?.name || 'Usuário'}</span>
+                              <span className="text-xs text-gray-500 truncate">{user.email}</span>
+                            </div>
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => navigate('/perfil')} className="flex items-center cursor-pointer">
+                            <User className="mr-2 h-4 w-4" />
+                            <span>Meu Perfil</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/meus-pedidos')} className="flex items-center cursor-pointer">
+                            <Package className="mr-2 h-4 w-4" />
+                            <span>Pedidos</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/rastrear-pedido')} className="flex items-center cursor-pointer">
+                            <MapPin className="mr-2 h-4 w-4" />
+                            <span>Rastrear</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => signOut()} className="text-red-500 focus:text-red-500 cursor-pointer">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Sair</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Versão desktop: com botões e informações completas */}
+                <div className="hidden md:block">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      {restaurant.logo_url && (
+                        <div className="w-14 h-14 rounded-full overflow-hidden border-3 border-white mr-3 shadow-lg transform hover:scale-105 transition-transform duration-300">
+                          <img 
+                            src={restaurant.logo_url} 
+                            alt={restaurant.name} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <h1 className="text-3xl font-bold mb-0">{restaurant.name}</h1>
+                        {restaurant.description && (
+                          <p className="text-sm mb-1 max-w-lg opacity-90 line-clamp-1">{restaurant.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      {!user ? (
+                        <button 
+                          className="p-2 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center"
+                          onClick={() => setIsAuthModalOpen(true)}
+                        >
+                          <UserCircle className="w-5 h-5 text-white mr-1" />
+                          <span className="text-white text-sm">Entrar</span>
+                        </button>
+                      ) : (
+                        <>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-2 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center">
+                                <Menu className="w-5 h-5 text-white" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56 mr-2">
+                              <DropdownMenuLabel>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{user.user_metadata?.name || 'Usuário'}</span>
+                                  <span className="text-xs text-gray-500 truncate">{user.email}</span>
+                                </div>
+                              </DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => navigate('/perfil')} className="flex items-center cursor-pointer">
+                                <User className="mr-2 h-4 w-4" />
+                                <span>Meu Perfil</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate('/meus-pedidos')} className="flex items-center cursor-pointer">
+                                <Package className="mr-2 h-4 w-4" />
+                                <span>Pedidos</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate('/rastrear-pedido')} className="flex items-center cursor-pointer">
+                                <MapPin className="mr-2 h-4 w-4" />
+                                <span>Rastrear</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => signOut()} className="text-red-500 focus:text-red-500 cursor-pointer">
+                                <LogOut className="mr-2 h-4 w-4" />
+                                <span>Sair</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </>
+                      )}
+                      <button 
+                        className="p-2 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md relative"
+                        onClick={() => setIsCartOpen(true)}
+                      >
+                        <ShoppingCart className="w-5 h-5 text-white" />
+                        <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                          {getItemCount()}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap mt-1">
+                    <Badge className="bg-primary hover:bg-primary/90 px-2 py-0.5 text-xs font-medium">
+                      <Star className="w-3 h-3 fill-white mr-1" />
+                      <span>4.8</span>
+                    </Badge>
+                    <Badge className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-2 py-0.5 text-xs font-medium">
+                      <Clock className="w-3 h-3 mr-1" />
+                      <span>30-45 min</span>
+                    </Badge>
+                    {restaurant.address && (
+                      <Badge className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-2 py-0.5 text-xs font-medium">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        <span className="truncate max-w-[120px]">{restaurant.address}</span>
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Banner e categorias (não fixos) */}
+        <div className="bg-white shadow-sm py-4">
+          <div className="max-w-6xl mx-auto px-4">
+            <RestaurantBanner 
+              restaurantId={restaurant.id} 
+              onSearch={handleSearch}
             />
           </div>
         </div>
-      </div>
-
-      {/* Conteúdo Principal com Layout de Duas Colunas */}
-      <div className="max-w-6xl mx-auto py-8 flex flex-col md:flex-row">
-        {/* Menu Lateral de Categorias (Visível apenas em telas médias e grandes) */}
-        <div className="hidden md:block w-64 pr-4 flex-shrink-0">
-          <div className="bg-white rounded-lg shadow-sm p-4 sticky top-24">
-            <h3 className="font-bold text-lg mb-4 text-gray-900">Categorias</h3>
-            <div className="space-y-2">
-              <button
-                onClick={() => setSelectedCategory('all')}
-                className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                  selectedCategory === 'all'
-                    ? 'bg-primary/10 font-medium text-primary'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Todos os Produtos
-              </button>
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                    selectedCategory === category.id
-                      ? 'bg-primary/10 font-medium text-primary'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {category.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Conteúdo Principal */}
-        <div className="flex-1 px-4">
-          {/* Categorias como Chips rolantes horizontalmente (apenas em dispositivos móveis) */}
-          <div className="md:hidden sticky top-[57px] z-20 bg-white shadow-sm py-3 -mx-4 px-4 mb-6">
+        
+        {/* Categorias como Chips rolantes horizontalmente (apenas em dispositivos móveis) */}
+        <div className="md:hidden bg-white shadow-sm py-3 border-t border-gray-100">
+          <div className="max-w-6xl mx-auto px-4">
             <div className="overflow-x-auto pb-1 hide-scrollbar">
               <div className="flex space-x-2 min-w-max">
-                <button
-                  onClick={() => setSelectedCategory('all')}
-                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                    selectedCategory === 'all' 
-                      ? 'bg-primary text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Todos os Produtos
-                </button>
                 {categories.map((category) => (
                   <button
                     key={category.id}
@@ -854,238 +885,308 @@ const RestaurantView = () => {
               </div>
             </div>
           </div>
-
-          {/* Produtos em Destaque */}
-          {featuredProducts.length > 0 && (
-            <div className="mb-12">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-                  <span className="mr-2">🔥</span> Destaques
-                </h2>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {featuredProducts.slice(0, 3).map(renderFeaturedProductCard)}
-              </div>
-            </div>
-          )}
-
-          {/* Lista de Produtos por Categoria */}
-          {categories.map((category) => {
-            const categoryProducts = filteredProducts.filter(p => p.category_id === category.id);
-            if (categoryProducts.length === 0 && selectedCategory !== category.id) return null;
-
-            return (
-              <div key={category.id} className="mb-12" id={`category-${category.id}`}>
-                <div className="flex items-center justify-between mb-5">
-                  <h2 className="text-2xl font-bold text-gray-900">{category.name}</h2>
-                </div>
-
-                {category.description && (
-                  <p className="text-gray-600 mb-5">{category.description}</p>
-                )}
-
-                {categoryProducts.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                    {categoryProducts.map(renderProductCard)}
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 rounded-lg p-8 text-center">
-                    <p className="text-gray-500">Nenhum produto encontrado nesta categoria</p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Produtos sem categoria */}
-          {(() => {
-            const uncategorizedProducts = filteredProducts.filter(p => !p.category_id);
-            if (uncategorizedProducts.length === 0) return null;
-
-            return (
-              <div className="mb-12" id="category-others">
-                <h2 className="text-2xl font-bold text-gray-900 mb-5">Outros Produtos</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                  {uncategorizedProducts.map(renderProductCard)}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Mensagem quando não há produtos */}
-          {filteredProducts.length === 0 && (
-            <div className="bg-white rounded-xl shadow p-10 text-center">
-              <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                <ShoppingCart className="w-10 h-10 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-medium text-gray-800">Cardápio em breve</h3>
-              <p className="text-gray-500 mt-2 max-w-md mx-auto">
-                Este restaurante ainda não adicionou produtos ao cardápio. Volte em breve!
-              </p>
-            </div>
-          )}
         </div>
-      </div>
 
-      {/* Modal de Visualização Rápida */}
-      <Dialog open={quickViewProduct !== null} onOpenChange={(open) => !open && setQuickViewProduct(null)}>
-        {quickViewProduct && (
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold">{quickViewProduct.name}</DialogTitle>
-              <DialogDescription className="text-gray-500">
-                {quickViewProduct.description}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid grid-cols-1 gap-4 py-4">
-              {quickViewProduct.image_url && (
-                <img 
-                  src={quickViewProduct.image_url} 
-                  alt={quickViewProduct.name} 
-                  className="w-full h-48 object-cover rounded-md" 
-                />
-              )}
-
-              <div className="flex items-center justify-between">
-                <p className="text-lg font-semibold text-primary">{formatCurrency(quickViewProduct.price)}</p>
-                <div className="flex items-center border border-gray-200 rounded-md">
-                  <button 
-                    onClick={() => decrementQuantity(quickViewProduct.id)} 
-                    className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-l-md"
+        {/* Conteúdo Principal com Layout de Duas Colunas */}
+        <div className="max-w-6xl mx-auto py-8 flex flex-col md:flex-row">
+          {/* Menu Lateral de Categorias (Visível apenas em telas médias e grandes) */}
+          <div className="hidden md:block w-64 pr-4 flex-shrink-0">
+            <div className="bg-white rounded-lg shadow-sm p-4 sticky top-24">
+              <h3 className="font-bold text-lg mb-4 text-gray-900">Categorias</h3>
+              <div className="space-y-2">
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                      selectedCategory === category.id
+                        ? 'bg-primary/10 font-medium text-primary'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
                   >
-                    <Minus className="w-4 h-4" />
+                    {category.name}
                   </button>
-                  <span className="w-12 text-center">{productQuantities[quickViewProduct.id] || 1}</span>
-                  <button 
-                    onClick={() => incrementQuantity(quickViewProduct.id)} 
-                    className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-r-md"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Conteúdo Principal */}
+          <div className="flex-1 px-4">
+            {/* Produtos em Destaque */}
+            {featuredProducts.length > 0 && (
+              <div className="mb-12 pt-4">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <span className="mr-2">🔥</span> Destaques
+                  </h2>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {featuredProducts.slice(0, 3).map(renderFeaturedProductCard)}
                 </div>
               </div>
+            )}
 
-              <div className="mt-2">
-                <h4 className="font-medium mb-1">Tempo de Preparo</h4>
-                <p className="text-gray-600 flex items-center">
-                  <Clock className="w-4 h-4 mr-2" />
-                  {quickViewProduct.preparation_time} minutos
+            {/* Lista de Produtos */}
+            <div className="flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredProducts.map((product) => (
+                  renderProductCard(product)
+                ))}
+              </div>
+            </div>
+
+            {/* Mensagem quando não há produtos */}
+            {products.length === 0 && (
+              <div className="bg-white rounded-xl shadow p-10 text-center">
+                <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                  <ShoppingCart className="w-10 h-10 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-medium text-gray-800">Cardápio em breve</h3>
+                <p className="text-gray-500 mt-2 max-w-md mx-auto">
+                  Este restaurante ainda não adicionou produtos ao cardápio. Volte em breve!
                 </p>
               </div>
-            </div>
-
-            <DialogFooter className="sm:justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setQuickViewProduct(null)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                style={{ backgroundColor: primaryColor }}
-                onClick={addToCartFromQuickView}
-              >
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                Adicionar ao Carrinho
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        )}
-      </Dialog>
-
-      {/* Carrinho Flutuante */}
-      {getItemCount() > 0 && (
-        <div 
-          className="fixed bottom-6 right-6 z-40 cursor-pointer"
-          onClick={() => setIsCartOpen(true)}
-        >
-          <div className="relative bg-primary text-white p-4 rounded-full shadow-lg flex items-center justify-center">
-            <ShoppingCart className="w-6 h-6" />
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full text-sm font-bold">
-              {getItemCount()}
-            </span>
+            )}
           </div>
         </div>
-      )}
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between">
-            <div className="mb-6 md:mb-0">
-              <h3 className="font-bold text-xl mb-3">{restaurant.name}</h3>
-              {restaurant.description && (
-                <p className="text-gray-300 mb-4 max-w-md">{restaurant.description}</p>
-              )}
-              {restaurant.address && (
-                <div className="flex items-start mb-2">
-                  <MapPin className="w-5 h-5 mr-2 text-gray-400 mt-0.5" />
-                  <span className="text-gray-300">
-                    {restaurant.address}
-                    {restaurant.city && `, ${restaurant.city}`}
-                    {restaurant.state && ` - ${restaurant.state}`}
-                  </span>
+        {/* Modal de Visualização Rápida */}
+        <Dialog open={quickViewProduct !== null} onOpenChange={(open) => !open && setQuickViewProduct(null)}>
+          {quickViewProduct && (
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-semibold">{quickViewProduct.name}</DialogTitle>
+                <DialogDescription className="text-gray-500">
+                  {quickViewProduct.description}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 gap-4 py-4">
+                {quickViewProduct.image_url && (
+                  <img 
+                    src={quickViewProduct.image_url} 
+                    alt={quickViewProduct.name} 
+                    className="w-full h-48 object-cover rounded-md" 
+                  />
+                )}
+
+                <div className="flex items-center justify-between">
+                  <p className="text-lg font-semibold text-primary">{formatCurrency(quickViewProduct.price)}</p>
+                  <div className="flex items-center border border-gray-200 rounded-md">
+                    <button 
+                      onClick={() => decrementQuantity(quickViewProduct.id)} 
+                      className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-l-md"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="w-12 text-center">{productQuantities[quickViewProduct.id] || 1}</span>
+                    <button 
+                      onClick={() => incrementQuantity(quickViewProduct.id)} 
+                      className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-r-md"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              )}
-              {restaurant.phone && (
-                <div className="flex items-center mb-2">
-                  <Phone className="w-5 h-5 mr-2 text-gray-400" />
-                  <span className="text-gray-300">{restaurant.phone}</span>
+
+                <div className="mt-2">
+                  <h4 className="font-medium mb-1">Tempo de Preparo</h4>
+                  <p className="text-gray-600 flex items-center">
+                    <Clock className="w-4 h-4 mr-2" />
+                    {quickViewProduct.preparation_time} minutos
+                  </p>
                 </div>
-              )}
+              </div>
+
+              <DialogFooter className="sm:justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setQuickViewProduct(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  style={{ backgroundColor: primaryColor }}
+                  onClick={addToCartFromQuickView}
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Adicionar ao Carrinho
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          )}
+        </Dialog>
+
+        {/* Carrinho Flutuante - apenas em desktop */}
+        {getItemCount() > 0 && (
+          <div 
+            className="fixed bottom-6 right-6 z-40 cursor-pointer hidden md:block"
+            onClick={() => setIsCartOpen(true)}
+          >
+            <div className="relative bg-primary text-white p-4 rounded-full shadow-lg flex items-center justify-center">
+              <ShoppingCart className="w-6 h-6" />
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full text-sm font-bold">
+                {getItemCount()}
+              </span>
             </div>
-            
-            <div>
-              <h4 className="font-medium text-lg mb-3">Redes Sociais</h4>
-              <div className="flex space-x-3">
-                <a href="#" className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors">
-                  <Instagram className="w-5 h-5" />
-                </a>
-                <a href="#" className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors">
-                  <Facebook className="w-5 h-5" />
-                </a>
+          </div>
+        )}
+
+        {/* Botão de carrinho flutuante para mobile - posicionado exatamente onde indicado */}
+        {getItemCount() > 0 && (
+          <div 
+            className="fixed bottom-[15px] right-[15px] z-40 cursor-pointer md:hidden"
+            onClick={() => setIsCartOpen(true)}
+          >
+            <div className="relative bg-green-600 text-white p-3.5 rounded-full shadow-lg flex items-center justify-center">
+              <ShoppingCart className="w-6 h-6" />
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold">
+                {getItemCount()}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <footer className="bg-gray-800 text-white py-8 mb-0">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="flex flex-col md:flex-row justify-between">
+              <div className="mb-6 md:mb-0">
+                <h3 className="font-bold text-xl mb-3">{restaurant.name}</h3>
+                {restaurant.description && (
+                  <p className="text-gray-300 mb-4 max-w-md">{restaurant.description}</p>
+                )}
+                {restaurant.address && (
+                  <div className="flex items-start mb-2">
+                    <MapPin className="w-5 h-5 mr-2 text-gray-400 mt-0.5" />
+                    <span className="text-gray-300">
+                      {restaurant.address}
+                      {restaurant.city && `, ${restaurant.city}`}
+                      {restaurant.state && ` - ${restaurant.state}`}
+                    </span>
+                  </div>
+                )}
+                {restaurant.phone && (
+                  <div className="flex items-center mb-2">
+                    <Phone className="w-5 h-5 mr-2 text-gray-400" />
+                    <span className="text-gray-300">{restaurant.phone}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <h4 className="font-medium text-lg mb-3">Redes Sociais</h4>
+                <div className="flex space-x-3">
+                  <a href="#" className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors">
+                    <Instagram className="w-5 h-5" />
+                  </a>
+                  <a href="#" className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors">
+                    <Facebook className="w-5 h-5" />
+                  </a>
+                </div>
               </div>
             </div>
+            
+            <div className="border-t border-gray-700 mt-8 pt-6 pb-0 text-center text-gray-400 text-sm">
+              <p>&copy; {new Date().getFullYear()} {restaurant.name}. Todos os direitos reservados.</p>
+              <p>Desenvolvido por Comanda Já</p>
+            </div>
           </div>
+        </footer>
+
+        {/* Cart Drawer */}
+        <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+
+        {/* Auth Modal */}
+        <AuthModal 
+          isOpen={isAuthModalOpen} 
+          onClose={() => setIsAuthModalOpen(false)} 
+          onSuccess={() => {
+            toast({
+              title: "Login realizado com sucesso!",
+              description: "Agora você pode favoritar restaurantes e fazer pedidos.",
+              duration: 3000,
+            });
+          }}
+        />
+
+        {/* Adicionar CSS para esconder a scrollbar e adicionar efeito de digitação */}
+        <style>{`
+          .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+          .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
           
-          <div className="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400 text-sm">
-            <p>&copy; {new Date().getFullYear()} {restaurant.name}. Todos os direitos reservados.</p>
-            <p>Desenvolvido com ♥ por Comanda Já</p>
-          </div>
-        </div>
-      </footer>
-
-      {/* Cart Drawer */}
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-
-      {/* Auth Modal */}
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
-        onSuccess={() => {
-          toast({
-            title: "Login realizado com sucesso!",
-            description: "Agora você pode favoritar restaurantes e fazer pedidos.",
-            duration: 3000,
-          });
-        }}
-      />
-
-      {/* Adicionar CSS para esconder a scrollbar */}
-      <style>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
-    </div>
+          @keyframes slideIn {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+          
+          @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+          }
+          
+          @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+          }
+          
+          @keyframes blink {
+            from, to { border-color: transparent }
+            50% { border-color: white; }
+          }
+          
+          @keyframes typing-infinite {
+            0% { width: 0 }
+            50% { width: 100% }
+            55% { width: 100% }
+            95% { width: 0 }
+            100% { width: 0 }
+          }
+          
+          .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out;
+          }
+          
+          .animate-slideIn {
+            animation: slideIn 0.5s ease-out 0.2s both;
+          }
+          
+          .animate-pulse {
+            animation: pulse 2s infinite;
+          }
+          
+          .animate-typing {
+            animation: typing 3.5s steps(40, end);
+          }
+          
+          .animate-typing-infinite {
+            animation: typing-infinite 8s steps(40, end) infinite, blink 1s step-end infinite;
+          }
+          
+          .typewriter {
+            display: inline-block;
+            overflow: hidden;
+            white-space: nowrap;
+            width: 100%;
+          }
+        `}</style>
+      </div>
+    </>
   );
 };
 

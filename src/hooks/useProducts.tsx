@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useRestaurant } from '@/hooks/useRestaurant';
@@ -33,14 +33,18 @@ interface ProductInput {
 }
 
 export const useProducts = () => {
-  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { restaurant } = useRestaurant();
   
-  // Buscar todos os produtos
-  const { data: products = [], isLoading, error } = useQuery({
-    queryKey: ['products'],
+  // Buscar todos os produtos com React Query
+  const { 
+    data: products = [], 
+    isLoading, 
+    error,
+    refetch 
+  } = useQuery({
+    queryKey: ['products', restaurant?.id],
     queryFn: async () => {
       if (!restaurant?.id) return [];
       
@@ -51,74 +55,60 @@ export const useProducts = () => {
         .order('display_order', { ascending: true });
       
       if (error) {
+        console.error('Erro ao buscar produtos:', error);
         return [];
       }
       
-      return data;
+      return data || [];
     },
-    enabled: !!restaurant?.id
+    enabled: !!restaurant?.id,
+    staleTime: 60000, // 1 minuto
+    gcTime: 300000, // 5 minutos
+    refetchOnWindowFocus: false,
   });
   
-  // Criar um novo produto
-  const createProduct = async (productData: ProductInput) => {
-    if (!restaurant?.id) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível identificar o restaurante",
-        variant: "destructive"
-      });
-      return null;
-    }
-    
-    setLoading(true);
-    
-    try {
+  // Mutation para criar produto
+  const createProductMutation = useMutation({
+    mutationFn: async (productData: ProductInput) => {
+      if (!restaurant?.id) {
+        throw new Error("Não foi possível identificar o restaurante");
+      }
+      
       const { data, error } = await supabase
         .from('products')
         .insert([{
           ...productData,
           restaurant_id: restaurant.id,
-          // Garantir que o campo image_url seja explícito, mesmo que seja null
           image_url: productData.image_url || null
         }])
         .select()
         .single();
       
       if (error) {
-        toast({
-          title: "Erro",
-          description: `Falha ao criar produto: ${error.message}`,
-          variant: "destructive"
-        });
-        return null;
+        throw new Error(`Falha ao criar produto: ${error.message}`);
       }
       
-      // Invalidar a query para recarregar a lista
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products', restaurant?.id] });
       toast({
         title: "Sucesso",
         description: "Produto criado com sucesso!"
       });
-      
-      return data;
-    } catch (error: any) {
+    },
+    onError: (error: Error) => {
       toast({
         title: "Erro",
         description: error.message || "Ocorreu um erro inesperado",
         variant: "destructive"
       });
-      return null;
-    } finally {
-      setLoading(false);
     }
-  };
+  });
   
-  // Atualizar um produto existente
-  const updateProduct = async (id: string, productData: ProductInput) => {
-    setLoading(true);
-    
-    try {
+  // Mutation para atualizar produto
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ id, productData }: { id: string, productData: ProductInput }) => {
       // Certificar-se de que o campo image_url seja explicitamente definido, mesmo se for null
       const updateData = {
         ...productData,
@@ -133,72 +123,79 @@ export const useProducts = () => {
         .single();
       
       if (error) {
-        toast({
-          title: "Erro",
-          description: `Falha ao atualizar produto: ${error.message}`,
-          variant: "destructive"
-        });
-        return null;
+        throw new Error(`Falha ao atualizar produto: ${error.message}`);
       }
       
-      // Invalidar a query para recarregar a lista
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products', restaurant?.id] });
       toast({
         title: "Sucesso",
         description: "Produto atualizado com sucesso!"
       });
-      
-      return data;
-    } catch (error: any) {
+    },
+    onError: (error: Error) => {
       toast({
         title: "Erro",
         description: error.message || "Ocorreu um erro inesperado",
         variant: "destructive"
       });
-      return null;
-    } finally {
-      setLoading(false);
     }
-  };
+  });
   
-  // Excluir um produto
-  const deleteProduct = async (id: string) => {
-    setLoading(true);
-    
-    try {
+  // Mutation para excluir produto
+  const deleteProductMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', id);
       
       if (error) {
-        toast({
-          title: "Erro",
-          description: `Falha ao excluir produto: ${error.message}`,
-          variant: "destructive"
-        });
-        return false;
+        throw new Error(`Falha ao excluir produto: ${error.message}`);
       }
       
-      // Invalidar a query para recarregar a lista
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products', restaurant?.id] });
       toast({
         title: "Sucesso",
         description: "Produto excluído com sucesso!"
       });
-      
-      return true;
-    } catch (error: any) {
+    },
+    onError: (error: Error) => {
       toast({
         title: "Erro",
         description: error.message || "Ocorreu um erro inesperado",
         variant: "destructive"
       });
+    }
+  });
+  
+  // Funções de wrapper para manter a API compatível
+  const createProduct = async (productData: ProductInput) => {
+    try {
+      return await createProductMutation.mutateAsync(productData);
+    } catch (error) {
+      return null;
+    }
+  };
+  
+  const updateProduct = async (id: string, productData: ProductInput) => {
+    try {
+      return await updateProductMutation.mutateAsync({ id, productData });
+    } catch (error) {
+      return null;
+    }
+  };
+  
+  const deleteProduct = async (id: string) => {
+    try {
+      return await deleteProductMutation.mutateAsync(id);
+    } catch (error) {
       return false;
-    } finally {
-      setLoading(false);
     }
   };
   
@@ -206,9 +203,10 @@ export const useProducts = () => {
     products,
     isLoading,
     error,
-    loading,
+    loading: createProductMutation.isPending || updateProductMutation.isPending || deleteProductMutation.isPending,
     createProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    refetch
   };
 };

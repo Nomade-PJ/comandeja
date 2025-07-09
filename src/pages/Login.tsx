@@ -87,14 +87,14 @@ const Login = () => {
                 .single();
                 
               if (restaurant?.slug) {
-                navigate(`/restaurante/${restaurant.slug}`);
+                navigate(`/${restaurant.slug}`);
                 return;
               }
             }
             navigate('/');
           } else {
             // Para admin ou restaurant_owner, redirecionar para o dashboard
-            navigate('/dashboard');
+            navigate('/painel');
           }
           return;
         }
@@ -114,7 +114,7 @@ const Login = () => {
               .single();
               
             if (restaurant?.slug) {
-              navigate(`/restaurante/${restaurant.slug}`);
+              navigate(`/${restaurant.slug}`);
               return;
             }
           }
@@ -123,11 +123,11 @@ const Login = () => {
           navigate('/');
         } else {
           // Se for admin ou dono de restaurante, vai para o dashboard
-          navigate('/dashboard');
+          navigate('/painel');
         }
       } catch (err) {
         // Em caso de erro, manda para o dashboard como fallback
-        navigate('/dashboard');
+        navigate('/painel');
       }
     };
     
@@ -226,6 +226,7 @@ const Login = () => {
                         <FormControl>
                           <Input
                             {...field}
+                            value={field.value || ''}
                             type="email"
                             placeholder="seu@email.com"
                             className="pl-10"
@@ -249,6 +250,7 @@ const Login = () => {
                         <FormControl>
                           <Input
                             {...field}
+                            value={field.value || ''}
                             type="password"
                             placeholder="••••••••"
                             className="pl-10"

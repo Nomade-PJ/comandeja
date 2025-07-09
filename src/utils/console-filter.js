@@ -45,7 +45,15 @@
     'Bad Request',
     '/rest/v1/dashboard',
     'previous_day',
-    'column'
+    'column',
+    // Adicionar filtros para os erros de React
+    'value prop on input',
+    'changing an uncontrolled input',
+    'changing a controlled input',
+    'input element',
+    'value={null}',
+    'uncontrolled component',
+    'controlled component'
   ];
   
   // URLs para filtrar completamente

@@ -88,7 +88,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           profileData = data;
         }
         const userRole = profileData?.role;
-        const isDashboardRoute = location.pathname.startsWith('/dashboard');
+        // Atualizar a verificação de rota do dashboard
+        const isDashboardRoute = location.pathname.startsWith('/painel') || 
+                                 location.pathname === '/pedidos' || 
+                                 location.pathname === '/produtos' || 
+                                 location.pathname === '/categorias' || 
+                                 location.pathname === '/clientes' || 
+                                 location.pathname === '/relatorios' || 
+                                 location.pathname === '/avaliacoes' || 
+                                 location.pathname === '/configuracoes' || 
+                                 location.pathname === '/perfil';
         if (isDashboardRoute) {
           if (userRole === 'customer') {
             setIsAuthorized(false);

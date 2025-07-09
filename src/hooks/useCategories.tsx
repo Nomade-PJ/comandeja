@@ -228,7 +228,12 @@ export const useCategories = () => {
       // Verifica se todos os IDs são válidos e correspondem às categorias existentes
       const validIds = orderedCategoryIds.every(id => categories.some(c => c.id === id));
       if (!validIds || orderedCategoryIds.length !== categories.length) {
-        throw new Error('IDs de categoria inválidos ou faltando');
+        toast({
+          title: "Erro",
+          description: "Erro ao reordenar: algumas categorias são inválidas",
+          variant: "destructive"
+        });
+        return false;
       }
       
       // Atualizações em lote para as novas ordens
@@ -239,20 +244,34 @@ export const useCategories = () => {
           .eq('id', id);
       });
       
-      await Promise.all(updates);
+      // Executa todas as atualizações em paralelo
+      const results = await Promise.allSettled(updates);
+      
+      // Verifica se alguma atualização falhou
+      const hasErrors = results.some(result => result.status === 'rejected');
+      if (hasErrors) {
+        toast({
+          title: "Erro",
+          description: "Algumas categorias não puderam ser reordenadas",
+          variant: "destructive"
+        });
+        return false;
+      }
       
       toast({
         title: "Sucesso",
-        description: "Categorias reordenadas com sucesso!"
+        description: "Categorias reordenadas com sucesso!",
+        variant: "default"
       });
       
-      fetchCategories();
+      // Atualiza a lista de categorias
+      await fetchCategories();
       return true;
     } catch (error) {
       console.error('Error reordering categories:', error);
       toast({
         title: "Erro",
-        description: "Erro ao reordenar categorias",
+        description: "Erro ao reordenar categorias. Tente novamente.",
         variant: "destructive"
       });
       return false;
@@ -267,6 +286,7 @@ export const useCategories = () => {
     deleteCategory,
     moveCategory,
     reorderCategories,
-    refetch: fetchCategories 
+    refetch: fetchCategories,
+    setCategories
   };
 };

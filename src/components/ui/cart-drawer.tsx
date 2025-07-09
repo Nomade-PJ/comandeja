@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, X, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCart, CartItem } from '@/contexts/CartContext';
@@ -22,6 +22,40 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const { getOrCreateCustomer } = useCustomer();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Efeito para bloquear a rolagem do body quando o drawer estiver aberto
+  useEffect(() => {
+    if (isOpen) {
+      // Salvar a posição atual de rolagem
+      const scrollY = window.scrollY;
+      
+      // Adicionar classes para bloquear rolagem
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflowY = 'hidden';
+    } else {
+      // Restaurar rolagem quando o drawer for fechado
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflowY = '';
+      
+      // Restaurar a posição de rolagem
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0', 10) * -1);
+      }
+    }
+    
+    // Limpeza ao desmontar
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflowY = '';
+    };
+  }, [isOpen]);
 
   // Group items by restaurant
   const itemsByRestaurant: Record<string, CartItem[]> = items.reduce((acc, item) => {
@@ -92,7 +126,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4 pb-48">
             {items.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <ShoppingCart className="w-12 h-12 text-gray-300 mb-4" />
@@ -170,9 +204,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             )}
           </div>
 
-          {/* Footer */}
+          {/* Footer - Agora com posição ajustada para ficar bem acima do menu inferior */}
           {items.length > 0 && (
-            <div className="border-t p-4">
+            <div className="border-t p-4 pb-6 bg-white absolute bottom-[60px] left-0 right-0 md:relative z-[100] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
               <div className="flex justify-between mb-4">
                 <span className="font-medium">Total</span>
                 <span className="font-bold">{formatCurrency(getTotal())}</span>

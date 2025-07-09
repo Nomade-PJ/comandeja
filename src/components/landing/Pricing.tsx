@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,8 +59,8 @@ const Pricing = () => {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl lg:text-4xl font-bold mb-6">
-            Planos que crescem
-            <span className="gradient-text block">com seu negócio</span>
+            <div className="text-gray-900 mb-2">Planos que crescem</div>
+            <span className="text-primary font-bold">com seu negócio</span>
           </h2>
           <p className="text-xl text-gray-600">
             Escolha o plano ideal para o seu restaurante. Comece grátis e 

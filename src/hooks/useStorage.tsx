@@ -3,9 +3,58 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 
-export const useStorage = () => {
+export function useStorage() {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+
+  const uploadFile = async (file: File, bucket: string = 'banners') => {
+    try {
+      setUploading(true);
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${uuidv4()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const deleteFile = async (url: string, bucket: string = 'public') => {
+    try {
+      const filePath = url.split('/').pop();
+      if (!filePath) return false;
+
+      const { error } = await supabase.storage
+        .from(bucket)
+        .remove([filePath]);
+
+      if (error) {
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      return false;
+    }
+  };
 
   const uploadImage = async (file: File, bucket: string = 'products') => {
     if (!file) return null;
@@ -106,9 +155,11 @@ export const useStorage = () => {
     }
   };
   
-  return { 
-    uploadImage, 
-    deleteImage, 
-    uploading 
+  return {
+    uploadFile,
+    deleteFile,
+    uploading,
+    uploadImage,
+    deleteImage
   };
-}; 
+} 

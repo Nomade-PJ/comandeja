@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Settings, Heart, ShoppingBag } from "lucide-react";
+import { User, LogOut, Settings, Heart, ShoppingBag, Package, MapPin } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UserMenuProps {
@@ -42,6 +42,14 @@ export function UserMenu({ className }: UserMenuProps) {
   const handleProfileClick = () => {
     navigate('/perfil');
   };
+  
+  const handleOrdersClick = () => {
+    navigate('/meus-pedidos');
+  };
+  
+  const handleTrackingClick = () => {
+    navigate('/rastrear-pedido');
+  };
 
   return (
     <DropdownMenu>
@@ -66,6 +74,14 @@ export function UserMenu({ className }: UserMenuProps) {
         <DropdownMenuItem onClick={handleProfileClick} className="flex items-center cursor-pointer">
           <User className="mr-2 h-4 w-4" />
           <span>Meu Perfil</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleOrdersClick} className="flex items-center cursor-pointer">
+          <Package className="mr-2 h-4 w-4" />
+          <span>Pedidos</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleTrackingClick} className="flex items-center cursor-pointer">
+          <MapPin className="mr-2 h-4 w-4" />
+          <span>Rastrear</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-red-500 focus:text-red-500 cursor-pointer">

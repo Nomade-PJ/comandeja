@@ -6,9 +6,59 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
+export interface Database {
   public: {
     Tables: {
+      banners: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          title: string;
+          description: string | null;
+          image_url: string;
+          link_url: string | null;
+          coupon_code: string | null;
+          discount_value: number | null;
+          start_date: string;
+          end_date: string;
+          is_active: boolean | null;
+          display_order: number | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          title: string;
+          description?: string | null;
+          image_url: string;
+          link_url?: string | null;
+          coupon_code?: string | null;
+          discount_value?: number | null;
+          start_date: string;
+          end_date: string;
+          is_active?: boolean | null;
+          display_order?: number | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          title?: string;
+          description?: string | null;
+          image_url?: string;
+          link_url?: string | null;
+          coupon_code?: string | null;
+          discount_value?: number | null;
+          start_date?: string;
+          end_date?: string;
+          is_active?: boolean | null;
+          display_order?: number | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+      }
       cart_items: {
         Row: {
           id: string
@@ -1087,3 +1137,20 @@ export const Constants = {
     },
   },
 } as const
+
+export type Banner = Database['public']['Tables']['banners']['Row'];
+export type BannerInsert = Database['public']['Tables']['banners']['Insert'];
+export type BannerUpdate = Database['public']['Tables']['banners']['Update'];
+
+export interface BannerFormValues {
+  title: string;
+  description?: string;
+  image_url: string;
+  link_url?: string;
+  coupon_code?: string;
+  discount_value?: number;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  display_order: number;
+}

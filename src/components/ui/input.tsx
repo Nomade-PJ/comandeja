@@ -4,6 +4,12 @@ import { cn } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
+    // Ensure value is never null or undefined to prevent controlled/uncontrolled warning
+    const inputProps = { ...props };
+    if ('value' in inputProps && (inputProps.value === null || inputProps.value === undefined)) {
+      inputProps.value = '';
+    }
+    
     return (
       <input
         type={type}
@@ -12,7 +18,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
-        {...props}
+        {...inputProps}
       />
     )
   }

@@ -39,4 +39,20 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    target: 'es2015', // Compatibilidade com navegadores modernos
+    cssCodeSplit: true, // Divide CSS em múltiplos arquivos
+    reportCompressedSize: false, // Melhora a velocidade de build
+    chunkSizeWarningLimit: 1000, // Aumenta o limite de aviso para 1000kB
+    rollupOptions: {
+      output: {
+        // Garantir que o React seja carregado antes de outros pacotes
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', 'lucide-react'],
+          'data-vendor': ['@tanstack/react-query', 'zustand'],
+        }
+      }
+    },
+  },
 }));

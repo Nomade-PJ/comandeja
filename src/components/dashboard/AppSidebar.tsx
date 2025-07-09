@@ -39,37 +39,37 @@ import { useRestaurant } from "@/hooks/useRestaurant";
 const menuItems = [
   {
     title: "Visão Geral",
-    url: "/dashboard",
+    url: "/painel",
     icon: BarChart3,
   },
   {
     title: "Pedidos",
-    url: "/dashboard/orders",
+    url: "/pedidos",
     icon: ClipboardList,
   },
   {
     title: "Produtos",
-    url: "/dashboard/products",
+    url: "/produtos",
     icon: Store,
   },
   {
     title: "Clientes",
-    url: "/dashboard/customers",
+    url: "/clientes",
     icon: Users,
   },
   {
     title: "Relatórios",
-    url: "/dashboard/reports",
+    url: "/relatorios",
     icon: TrendingUp,
   },
   {
     title: "Avaliações",
-    url: "/dashboard/reviews",
+    url: "/avaliacoes",
     icon: Star,
   },
   {
     title: "Configurações",
-    url: "/dashboard/settings",
+    url: "/configuracoes",
     icon: Settings,
   },
 ];
@@ -103,14 +103,15 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="hidden md:flex">
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 px-3 py-4">
-          <div className="w-10 h-10 bg-gradient-brand rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-base">CJ</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="font-semibold gradient-text text-lg">ComandeJá</span>
-            <span className="text-sm text-muted-foreground">Dashboard</span>
+      <SidebarHeader className="border-b-0">
+        <div className="flex flex-col items-center p-0 -mt-12">
+          <img 
+            src="/logo.png" 
+            alt="ComandaJá" 
+            className="h-40 w-auto"
+          />
+          <div className="w-full relative">
+            <div className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-brand-500 to-transparent -mt-2 bg-[length:200%_100%] animate-shimmer bg-shimmer-gradient"></div>
           </div>
         </div>
       </SidebarHeader>
@@ -161,11 +162,11 @@ export function AppSidebar() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="text-base">Minha Conta</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/dashboard/settings/profile")} className="py-2 text-base">
+              <DropdownMenuItem onClick={() => navigate("/perfil")} className="py-2 text-base">
                 <User className="mr-2 h-5 w-5" />
                 Perfil
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="py-2 text-base">
+              <DropdownMenuItem onClick={() => navigate("/configuracoes")} className="py-2 text-base">
                 <Settings className="mr-2 h-5 w-5" />
                 Configurações
               </DropdownMenuItem>

@@ -36,6 +36,9 @@ const DashboardHeader = () => {
           </div>
         </div>
       </div>
+      <div className="relative h-[2px] w-full">
+        <div className="absolute left-0 right-0 h-full bg-gradient-to-r from-transparent via-brand-500 to-transparent bg-[length:200%_100%] animate-shimmer bg-shimmer-gradient"></div>
+      </div>
     </header>
   );
 };

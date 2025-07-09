@@ -11,6 +11,7 @@ class RealtimeService {
   private maxReconnectAttempts = 15;
   private currentReconnectAttempt = 0;
   private reconnectDelay = 1000;
+  private visibilityChangeHandler: () => void;
 
   constructor() {
     this.channels = new Map();
@@ -20,6 +21,46 @@ class RealtimeService {
     // Monitorar estado da conexão
     window.addEventListener('online', this.handleOnline.bind(this));
     window.addEventListener('offline', this.handleOffline.bind(this));
+    
+    // Handler para visibilitychange
+    this.visibilityChangeHandler = this.handleVisibilityChange.bind(this);
+  }
+  
+  /**
+   * Inicializa o serviço de realtime
+   */
+  initialize() {
+    // Adicionar listener para quando o usuário mudar de aba
+    document.addEventListener('visibilitychange', this.visibilityChangeHandler);
+    
+    // Outras inicializações necessárias
+    logDebug('RealtimeService initialized');
+  }
+  
+  /**
+   * Limpa recursos e listeners quando o componente é desmontado
+   */
+  cleanup() {
+    // Remover event listeners
+    document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+    
+    // Cancelar todas as subscrições
+    this.unsubscribeAll();
+    
+    logDebug('RealtimeService cleaned up');
+  }
+  
+  /**
+   * Manipula mudanças de visibilidade da página
+   */
+  private handleVisibilityChange() {
+    if (document.visibilityState === 'hidden') {
+      // Quando a página fica oculta (usuário muda de aba ou minimiza), cancelar todas as subscrições
+      this.unsubscribeAll();
+    } else if (document.visibilityState === 'visible') {
+      // Quando a página fica visível novamente, tentar reconectar
+      this.reconnectAll();
+    }
   }
 
   /**

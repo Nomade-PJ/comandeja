@@ -17,17 +17,17 @@ import { cn } from "@/lib/utils";
 const mainNavItems = [
   {
     title: "Visão Geral",
-    url: "/dashboard",
+    url: "/painel",
     icon: BarChart3,
   },
   {
     title: "Pedidos",
-    url: "/dashboard/orders",
+    url: "/pedidos",
     icon: ClipboardList,
   },
   {
     title: "Produtos",
-    url: "/dashboard/products",
+    url: "/produtos",
     icon: Store,
   },
 ];
@@ -35,22 +35,22 @@ const mainNavItems = [
 const moreMenuItems = [
   {
     title: "Clientes",
-    url: "/dashboard/customers",
+    url: "/clientes",
     icon: Users,
   },
   {
     title: "Relatórios",
-    url: "/dashboard/reports",
+    url: "/relatorios",
     icon: TrendingUp,
   },
   {
     title: "Avaliações",
-    url: "/dashboard/reviews",
+    url: "/avaliacoes",
     icon: Star,
   },
   {
     title: "Configurações",
-    url: "/dashboard/settings",
+    url: "/configuracoes",
     icon: Settings,
   },
 ];

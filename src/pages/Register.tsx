@@ -44,7 +44,7 @@ const Register = () => {
   // Verificar se o usuário já está autenticado
   useEffect(() => {
     if (user && !isAuthLoading) {
-      navigate("/dashboard");
+      navigate("/painel");
     }
   }, [user, isAuthLoading, navigate]);
 
@@ -65,7 +65,7 @@ const Register = () => {
         }
       } else {
         toast.success("Conta criada com sucesso! Verifique seu email para confirmar.");
-        navigate("/login");
+        navigate("/painel");
       }
     } catch (error) {
       toast.error("Erro inesperado ao criar conta");
@@ -203,11 +203,11 @@ const Register = () => {
                       </FormControl>
                       <div className="text-sm">
                         Aceito os{" "}
-                        <Link to="/terms" className="text-brand-600 hover:text-brand-700">
+                        <Link to="/termos-de-uso" className="text-brand-600 hover:text-brand-700">
                           termos de uso
                         </Link>{" "}
                         e{" "}
-                        <Link to="/privacy" className="text-brand-600 hover:text-brand-700">
+                        <Link to="/politica-privacidade" className="text-brand-600 hover:text-brand-700">
                           política de privacidade
                         </Link>
                       </div>

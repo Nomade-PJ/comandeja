@@ -87,7 +87,7 @@ const ProductDetails = () => {
 
   const handleGoBack = () => {
     if (product?.restaurant?.slug) {
-      navigate(`/restaurante/${product.restaurant.slug}`);
+      navigate(`/${product.restaurant.slug}`);
     } else {
       navigate(-1);
     }

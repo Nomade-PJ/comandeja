@@ -1,18 +1,17 @@
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { DashboardLayout } from "../components/layout/DashboardLayout";
 import { useState, useEffect } from "react";
+import { useRestaurantNameCheck } from "../hooks/useRestaurantNameCheck";
 
-
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Save, Store, Bell, CreditCard, Settings, Store as StoreIcon, User, Image, Instagram, Facebook, Twitter, Globe, Upload } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { useRestaurant } from "@/hooks/useRestaurant";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import { Switch } from "../components/ui/switch";
+import { Save, Store, Bell, CreditCard, Settings, Store as StoreIcon, User, Image, Instagram, Facebook, Twitter, Globe, Upload, Check, X, Loader2 } from "lucide-react";
+import { useToast } from "../components/ui/use-toast";
+import { useRestaurant } from "../hooks/useRestaurant";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const DashboardSettings = () => {
@@ -23,6 +22,7 @@ const DashboardSettings = () => {
   
   // Restaurant info state
   const [restaurantName, setRestaurantName] = useState("");
+  const { isAvailable, isChecking, error } = useRestaurantNameCheck(restaurantName, restaurant?.id);
   const [phone, setPhone] = useState("");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
@@ -47,11 +47,29 @@ const DashboardSettings = () => {
 
   // Define qual aba deve estar ativa com base na URL
   const getDefaultTab = () => {
-    if (location.pathname.includes("/profile")) {
+    // Verificar se há um parâmetro tab na URL
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab');
+    
+    if (tabParam) {
+      return tabParam;
+    }
+    
+    if (location.pathname.includes("/perfil")) {
       return "profile";
     }
-    return "restaurant-info";
+    
+    // Sempre retornar "profile" como padrão para abrir na aba de perfil
+    return "profile";
   };
+
+  const [activeTab, setActiveTab] = useState<string>(getDefaultTab());
+
+  // Definir a aba ativa quando o componente é montado ou a URL muda
+  useEffect(() => {
+    const newActiveTab = getDefaultTab();
+    setActiveTab(newActiveTab);
+  }, [location.search, location.pathname]);
 
   // Carregar dados do restaurante quando disponíveis
   useEffect(() => {
@@ -83,6 +101,16 @@ const DashboardSettings = () => {
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Verificar se o nome está disponível antes de salvar
+    if (!isAvailable) {
+      toast({
+        title: "Nome indisponível",
+        description: "Este nome de restaurante já está em uso. Por favor, escolha outro nome.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const socialMediaData = {
       instagram,
       facebook,
@@ -136,10 +164,11 @@ const DashboardSettings = () => {
 
   // Função para redirecionar para uma aba específica
   const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
     if (tab === "profile") {
-      navigate("/dashboard/settings/profile");
+      navigate("/perfil");
     } else {
-      navigate("/dashboard/settings");
+      navigate(`/configuracoes?tab=${tab}`);
     }
   };
 
@@ -171,7 +200,7 @@ const DashboardSettings = () => {
                   </Button>
                 </div>
 
-                <Tabs defaultValue={getDefaultTab()} className="w-full" onValueChange={handleTabChange}>
+                <Tabs defaultValue={getDefaultTab()} className="w-full" onValueChange={handleTabChange} value={activeTab}>
                   <TabsList className="mb-6 grid w-full grid-cols-4">
                     <TabsTrigger value="profile" className="flex items-center">
                       <User className="w-4 h-4 mr-2" />
@@ -296,26 +325,39 @@ const DashboardSettings = () => {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="name">Nome do Restaurante</Label>
-                            <Input 
-                              id="name" 
-                              placeholder="Digite o nome do restaurante"
+                        <div className="space-y-2">
+                          <Label htmlFor="restaurant-name">Nome do Restaurante</Label>
+                          <div className="relative">
+                            <Input
+                              id="restaurant-name"
+                              placeholder="Digite o nome do seu restaurante"
                               value={restaurantName}
                               onChange={(e) => setRestaurantName(e.target.value)}
-                              required
+                              className="pr-10"
                             />
+                            {restaurantName && (
+                              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                                {isChecking ? (
+                                  <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+                                ) : error ? (
+                                  <X className="w-4 h-4 text-red-500" />
+                                ) : isAvailable ? (
+                                  <Check className="w-4 h-4 text-green-500" />
+                                ) : (
+                                  <X className="w-4 h-4 text-red-500" />
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="phone">Telefone</Label>
-                            <Input 
-                              id="phone" 
-                              placeholder="(11) 99999-9999"
-                              value={phone}
-                              onChange={(e) => setPhone(e.target.value)}
-                            />
-                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Telefone</Label>
+                          <Input 
+                            id="phone" 
+                            placeholder="(11) 99999-9999"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="description">Descrição</Label>

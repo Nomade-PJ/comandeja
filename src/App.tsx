@@ -6,47 +6,76 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { ProtectedRoute } from "@/components/ui/protected-route";
+import { lazy, Suspense, useEffect } from "react";
+import { realtimeService } from "./integrations/supabase/realtimeService";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import DashboardOrders from "./pages/DashboardOrders";
-import DashboardProducts from "./pages/DashboardProducts";
-import DashboardCategories from "./pages/DashboardCategories";
-import DashboardCustomers from "./pages/DashboardCustomers";
-import DashboardReports from "./pages/DashboardReports";
-import DashboardReviews from "./pages/DashboardReviews";
-import DashboardSettings from "./pages/DashboardSettings";
-import RestaurantView from "./pages/RestaurantView";
-import ProductDetails from "./pages/ProductDetails";
-import CustomerSettings from "./pages/CustomerSettings";
-import Checkout from "./pages/Checkout";
-import OrderConfirmation from "./pages/OrderConfirmation";
-import NotFound from "./pages/NotFound";
-import { useEffect } from "react";
-import { supabase } from "./integrations/supabase/client";
-import { realtimeService } from "./integrations/supabase/realtimeService";
-// Filtro já importado em main.tsx
-// import "@/utils/console-filter";
 
-const queryClient = new QueryClient();
+// Importações lazy para melhorar o desempenho
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DashboardOrders = lazy(() => import("./pages/DashboardOrders"));
+const DashboardProducts = lazy(() => import("./pages/DashboardProducts"));
+const DashboardCategories = lazy(() => import("./pages/DashboardCategories"));
+const DashboardCustomers = lazy(() => import("./pages/DashboardCustomers"));
+const DashboardReports = lazy(() => import("./pages/DashboardReports"));
+const DashboardReviews = lazy(() => import("./pages/DashboardReviews"));
+const DashboardSettings = lazy(() => import("./pages/DashboardSettings"));
+const RestaurantView = lazy(() => import("./pages/RestaurantView"));
+const ProductDetails = lazy(() => import("./pages/ProductDetails"));
+const CustomerSettings = lazy(() => import("./pages/CustomerSettings"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const OrderConfirmation = lazy(() => import("./pages/OrderConfirmation"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const MeusOrders = lazy(() => import("./pages/MeusOrders"));
+const OrderTracking = lazy(() => import("./pages/OrderTracking"));
+const Funcionalidades = lazy(() => import("./pages/Funcionalidades"));
+const Precos = lazy(() => import("./pages/Precos"));
+const Demo = lazy(() => import("./pages/Demo"));
+const API = lazy(() => import("./pages/API"));
+const CentralAjuda = lazy(() => import("./pages/CentralAjuda"));
+const Documentacao = lazy(() => import("./pages/Documentacao"));
+const Status = lazy(() => import("./pages/Status"));
+const Contato = lazy(() => import("./pages/Contato"));
+const TermosDeUso = lazy(() => import("./pages/TermosDeUso"));
+const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30000,
+      gcTime: 300000,
+      refetchOnWindowFocus: false,
+      refetchOnMount: true,
+      retry: 1,
+    },
+  },
+});
+
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
+  </div>
+);
 
 const App = () => {
-  // Configurar tratamento global para erros do Supabase Realtime
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        // Quando a página fica oculta (usuário muda de aba ou minimiza), cancelar todas as subscrições
-        realtimeService.unsubscribeAll();
-      }
-    };
-
-    // Adicionar listener para quando o usuário mudar de aba
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    realtimeService.initialize();
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      realtimeService.cleanup();
     };
+  }, []);
+
+  useEffect(() => {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const savedTheme = localStorage.getItem('theme');
+    
+    if (savedTheme === 'dark' || (!savedTheme && isDarkMode)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }, []);
 
   return (
@@ -54,91 +83,116 @@ const App = () => {
       <TooltipProvider>
         <AuthProvider>
           <CartProvider>
-            <Toaster />
-            <Sonner />
             <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                
-                {/* Rotas protegidas do Dashboard */}
-                <Route path="/dashboard" element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/dashboard/orders" element={
-                  <ProtectedRoute>
-                    <DashboardOrders />
-                  </ProtectedRoute>
-                } />
-                <Route path="/dashboard/products" element={
-                  <ProtectedRoute>
-                    <DashboardProducts />
-                  </ProtectedRoute>
-                } />
-                <Route path="/dashboard/categories" element={
-                  <ProtectedRoute>
-                    <DashboardCategories />
-                  </ProtectedRoute>
-                } />
-                <Route path="/dashboard/customers" element={
-                  <ProtectedRoute>
-                    <DashboardCustomers />
-                  </ProtectedRoute>
-                } />
-                <Route path="/dashboard/reports" element={
-                  <ProtectedRoute>
-                    <DashboardReports />
-                  </ProtectedRoute>
-                } />
-                <Route path="/dashboard/reviews" element={
-                  <ProtectedRoute>
-                    <DashboardReviews />
-                  </ProtectedRoute>
-                } />
-                <Route path="/dashboard/settings" element={
-                  <ProtectedRoute>
-                    <DashboardSettings />
-                  </ProtectedRoute>
-                } />
-                <Route path="/dashboard/settings/profile" element={
-                  <ProtectedRoute>
-                    <DashboardSettings />
-                  </ProtectedRoute>
-                } />
-                
-                {/* Rotas públicas */}
-                <Route path="/restaurante/:slug" element={<RestaurantView />} />
-                <Route path="/produto/:productId" element={<ProductDetails />} />
-                <Route path="/checkout" element={
-                  <ProtectedRoute>
-                    <Checkout />
-                  </ProtectedRoute>
-                } />
-                <Route path="/pedido-confirmado" element={<OrderConfirmation />} />
-                <Route path="/configuracoes" element={
-                  <ProtectedRoute>
-                    <CustomerSettings />
-                  </ProtectedRoute>
-                } />
-                <Route path="/perfil" element={
-                  <ProtectedRoute>
-                    <CustomerSettings />
-                  </ProtectedRoute>
-                } />
-                
-                {/* Nova rota específica para perfil do cliente */}
-                <Route path="/cliente/perfil" element={<CustomerSettings />} />
-                
-                {/* Rota de fallback */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<LoadingFallback />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  
+                  <Route path="/funcionalidades" element={<Funcionalidades />} />
+                  <Route path="/precos" element={<Precos />} />
+                  <Route path="/demo" element={<Demo />} />
+                  <Route path="/api" element={<API />} />
+                  <Route path="/central-ajuda" element={<CentralAjuda />} />
+                  <Route path="/documentacao" element={<Documentacao />} />
+                  <Route path="/status" element={<Status />} />
+                  <Route path="/contato" element={<Contato />} />
+                  <Route path="/termos-de-uso" element={<TermosDeUso />} />
+                  <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+                  
+                  {/* Rotas do Dashboard - usando apenas as rotas diretas em português */}
+                  <Route path="/painel" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/pedidos" element={
+                    <ProtectedRoute>
+                      <DashboardOrders />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/produtos" element={
+                    <ProtectedRoute>
+                      <DashboardProducts />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/categorias" element={
+                    <ProtectedRoute>
+                      <DashboardCategories />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/clientes" element={
+                    <ProtectedRoute>
+                      <DashboardCustomers />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/relatorios" element={
+                    <ProtectedRoute>
+                      <DashboardReports />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/avaliacoes" element={
+                    <ProtectedRoute>
+                      <DashboardReviews />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/configuracoes" element={
+                    <ProtectedRoute>
+                      <DashboardSettings />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/perfil" element={
+                    <ProtectedRoute>
+                      <DashboardSettings />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/:slug" element={<RestaurantView />} />
+                  <Route path="/produto/:productId" element={<ProductDetails />} />
+                  <Route path="/checkout" element={
+                    <ProtectedRoute>
+                      <Checkout />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/pedido-confirmado" element={<OrderConfirmation />} />
+                  <Route path="/cliente/configuracoes" element={
+                    <ProtectedRoute>
+                      <CustomerSettings />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/cliente/perfil" element={
+                    <ProtectedRoute>
+                      <CustomerSettings />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/meus-pedidos" element={
+                    <ProtectedRoute>
+                      <MeusOrders />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/rastrear-pedido" element={
+                    <ProtectedRoute>
+                      <OrderTracking />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/rastrear-pedido/:orderId" element={
+                    <ProtectedRoute>
+                      <OrderTracking />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </BrowserRouter>
           </CartProvider>
         </AuthProvider>
       </TooltipProvider>
+      
+      <Toaster />
+      <Sonner />
     </QueryClientProvider>
   );
 }
