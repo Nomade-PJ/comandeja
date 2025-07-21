@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/lib/utils';
-import { ArrowLeft, ArrowRight, CreditCard, MapPin, Clock, Loader2, Search, Receipt, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CreditCard, MapPin, Clock, Loader2, Search, Receipt, ShoppingBag, Navigation } from 'lucide-react';
 import { CheckoutStepper, CheckoutStep } from '@/components/ui/checkout-stepper';
 import { OrderReceipt, OrderItem } from '@/components/ui/order-receipt';
 import { useCustomer } from '@/hooks/useCustomer';
@@ -57,6 +57,7 @@ const Checkout = () => {
   const { getOrCreateCustomer } = useCustomer();
   const [isLoading, setIsLoading] = useState(false);
   const [isCepLoading, setIsCepLoading] = useState(false);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
   const [customerData, setCustomerData] = useState({
     name: '',
     email: '',
@@ -78,6 +79,13 @@ const Checkout = () => {
   const [orderNumber, setOrderNumber] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
   const [orderComplete, setOrderComplete] = useState(false);
+  const [locationCoordinates, setLocationCoordinates] = useState<{
+    latitude: number | null;
+    longitude: number | null;
+  }>({
+    latitude: null,
+    longitude: null
+  });
 
   // Define as etapas do checkout
   const steps: CheckoutStep[] = [
@@ -224,6 +232,44 @@ const Checkout = () => {
     }
   };
 
+  // Função para obter a localização atual do usuário
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Geolocalização não suportada",
+        description: "Seu navegador não suporta geolocalização",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLocationLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setLocationCoordinates({ latitude, longitude });
+
+        toast({
+          title: "Localização capturada",
+          description: "Sua localização atual foi salva com sucesso",
+        });
+
+        setIsLocationLoading(false);
+      },
+      (error) => {
+        console.error("Erro ao obter localização:", error);
+        toast({
+          title: "Erro ao obter localização",
+          description: error.message || "Não foi possível acessar sua localização",
+          variant: "destructive",
+        });
+        setIsLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
   // Função para continuar para a próxima etapa
   const handleNextStep = () => {
     // Validar campos antes de prosseguir
@@ -346,6 +392,8 @@ const Checkout = () => {
         delivery_city: deliveryMethod === 'delivery' ? address.city : null,
         delivery_state: deliveryMethod === 'delivery' ? address.state : null,
         delivery_zip_code: deliveryMethod === 'delivery' ? address.zipCode : null,
+        delivery_latitude: locationCoordinates.latitude,
+        delivery_longitude: locationCoordinates.longitude,
         customer_name: customerData.name,
         customer_phone: customerData.phone || '',
         customer_email: customerData.email || '',
@@ -549,7 +597,38 @@ const Checkout = () => {
 
                   {deliveryMethod === 'delivery' && (
                     <div className="space-y-4 mt-4 pt-4 border-t">
-                      <h4 className="font-medium">Endereço de entrega</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">Endereço de entrega</h4>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={getCurrentLocation}
+                          disabled={isLocationLoading}
+                          className="flex items-center"
+                        >
+                          {isLocationLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                          ) : (
+                            <Navigation className="h-4 w-4 mr-1" />
+                          )}
+                          {locationCoordinates.latitude && locationCoordinates.longitude 
+                            ? "Localização capturada" 
+                            : "Usar minha localização atual"}
+                        </Button>
+                      </div>
+                      
+                      {locationCoordinates.latitude && locationCoordinates.longitude && (
+                        <div className="bg-green-50 p-3 rounded-md border border-green-200 mb-4">
+                          <div className="flex items-center text-green-800">
+                            <MapPin className="h-4 w-4 mr-2 text-green-600" />
+                            <span className="text-sm font-medium">Localização capturada com sucesso!</span>
+                          </div>
+                          <p className="text-xs text-green-700 mt-1">
+                            Suas coordenadas foram salvas para facilitar o rastreamento do seu pedido.
+                          </p>
+                        </div>
+                      )}
                       
                       {/* Campo de CEP com botão de busca */}
                       <div className="space-y-2">

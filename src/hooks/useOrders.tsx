@@ -28,10 +28,21 @@ export interface OrderWithItems {
   delivery_address?: string;
   delivery_city?: string;
   delivery_state?: string;
+  delivery_zip_code?: string;
+  delivery_latitude?: number | null;
+  delivery_longitude?: number | null;
   created_at: string;
   updated_at: string;
   notes?: string;
   items?: OrderItem[];
+  restaurants?: {
+    id: string;
+    name: string;
+    logo_url?: string;
+    phone?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
 }
 
 export interface OrderItem {

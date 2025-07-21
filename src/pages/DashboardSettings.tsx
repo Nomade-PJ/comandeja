@@ -13,6 +13,7 @@ import { useToast } from "../components/ui/use-toast";
 import { useRestaurant } from "../hooks/useRestaurant";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const DashboardSettings = () => {
   const { toast } = useToast();
@@ -165,18 +166,45 @@ const DashboardSettings = () => {
   // Função para redirecionar para uma aba específica
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    if (tab === "profile") {
-      navigate("/perfil");
-    } else {
-      navigate(`/configuracoes?tab=${tab}`);
-    }
+    navigate(`/configuracoes?tab=${tab}`);
   };
 
   if (loading) {
     return (
       <DashboardLayout>
-              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-brand-600"></div>
-            </DashboardLayout>
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <Skeleton className="h-8 w-64 mb-2" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+            <Skeleton className="h-10 w-40" />
+          </div>
+          
+          <Skeleton className="h-12 w-full mb-6" />
+          
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-24 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
     );
   }
 

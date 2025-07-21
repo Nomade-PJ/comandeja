@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { 
   Plus, Search, Filter, FolderPlus, Edit, Trash2,
-  ArrowUp, ArrowDown, GripVertical, Store, Package, ChevronDown, ChevronUp, Eye, Pencil
+  ArrowUp, ArrowDown, GripVertical, Store, Package, ChevronDown, ChevronUp, Eye, Pencil, Megaphone
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,7 @@ import { useRestaurant } from '@/hooks/useRestaurant';
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import type { Banner, BannerFormValues } from '@/integrations/supabase/types';
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Adicionar a interface Product
 interface Product {
@@ -60,7 +61,7 @@ interface Category {
 }
 
 const DashboardProducts = () => {
-  const [activeTab, setActiveTab] = useState<"produtos" | "categorias" | "anuncios">("produtos");
+  const [activeTab, setActiveTab] = useState<"produtos" | "categorias" | "anuncios">("categorias");
   const [showNewProductModal, setShowNewProductModal] = useState(false);
   const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
   const [showFiltersModal, setShowFiltersModal] = useState(false);
@@ -196,8 +197,48 @@ const DashboardProducts = () => {
   if (productsLoading || categoriesLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <p className="text-gray-500">Carregando...</p>
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <Skeleton className="h-8 w-64 mb-2" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+            <Skeleton className="h-10 w-40" />
+          </div>
+          
+          {/* Tabs loading state */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Skeleton className="h-6 w-32 mb-2" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
+                <Skeleton className="h-10 w-32" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 grid grid-cols-3 gap-2 w-full">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              
+              <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mb-4">
+                <Skeleton className="h-10 w-full" />
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Skeleton className="h-10 w-24" />
+                  <Skeleton className="h-10 w-24" />
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <Skeleton className="h-40 w-full" />
+                <Skeleton className="h-40 w-full" />
+                <Skeleton className="h-40 w-full" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </DashboardLayout>
     );
@@ -237,18 +278,18 @@ const DashboardProducts = () => {
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="produtos">
+              <TabsList className="mb-4 grid grid-cols-3 w-full">
+                <TabsTrigger value="categorias" className="flex items-center justify-center">
+                  <Store className="w-4 h-4 mr-2" />
+                  <span>Categorias</span>
+                </TabsTrigger>
+                <TabsTrigger value="produtos" className="flex items-center justify-center">
                   <Package className="w-4 h-4 mr-2" />
-                  Produtos
+                  <span>Produtos</span>
                 </TabsTrigger>
-                <TabsTrigger value="categorias">
-                  <Store className="w-4 h-4 mr-2" />
-                  Categorias
-                </TabsTrigger>
-                <TabsTrigger value="anuncios">
-                  <Store className="w-4 h-4 mr-2" />
-                  Criar Anúncios
+                <TabsTrigger value="anuncios" className="flex items-center justify-center">
+                  <Megaphone className="w-4 h-4 mr-2" />
+                  <span>Anúncios</span>
                 </TabsTrigger>
               </TabsList>
 

@@ -55,20 +55,39 @@ const Register = () => {
       const { error } = await signUp(data.email, data.password, data.name, 'restaurant_owner');
       
       if (error) {
-        toast.error("Erro ao criar conta: " + error.message);
+        console.error('Erro no registro:', error);
         
-        // Tratar erros específicos do Supabase
-        if (error.message.includes('email')) {
+        // Tratar erros específicos
+        if (error.message?.toLowerCase().includes('email')) {
           form.setError("email", { 
             message: "Este email já está em uso ou é inválido" 
           });
+        } else if (error.message?.toLowerCase().includes('password')) {
+          form.setError("password", { 
+            message: "Senha inválida ou muito fraca" 
+          });
+        } else if (error.message?.toLowerCase().includes('profile')) {
+          form.setError("root", { 
+            message: "Erro ao criar perfil. Por favor, tente novamente." 
+          });
+        } else {
+          form.setError("root", { 
+            message: error.message || "Erro inesperado ao criar conta" 
+          });
         }
+        
+        toast.error("Erro ao criar conta: " + error.message);
       } else {
-        toast.success("Conta criada com sucesso! Verifique seu email para confirmar.");
+        toast.success("Conta criada com sucesso!");
+        // Redirecionar diretamente para o painel
         navigate("/painel");
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Erro inesperado:', error);
       toast.error("Erro inesperado ao criar conta");
+      form.setError("root", { 
+        message: "Erro inesperado ao criar conta. Por favor, tente novamente." 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -79,8 +98,7 @@ const Register = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-t-primary border-primary/30 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500 font-medium">Verificando autenticação...</p>
+          <div className="w-16 h-16 border-4 border-t-primary border-primary/30 rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
     );

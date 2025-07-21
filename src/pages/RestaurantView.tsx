@@ -15,6 +15,7 @@ import { AuthModal } from '@/components/ui/auth-modal';
 import { formatCurrency } from '@/lib/utils';
 import { Restaurant, Category, Product, Profile } from '@/types';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useRestaurantAccess } from '@/hooks/useRestaurantAccess';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -42,11 +43,43 @@ const RestaurantView = () => {
   const { addItem, getItemCount, toggleFavorite, isFavorite } = useCart();
   const { user, signOut } = useAuth();
 
+  // Usar o hook de acesso a restaurantes
+  const { 
+    registeredRestaurantSlug, 
+    checkAccess, 
+    registerRestaurant 
+  } = useRestaurantAccess();
+  
+  // Verificar se o usuário tem permissão para acessar este restaurante
   useEffect(() => {
+    const checkUserAccess = async () => {
+      // Se não tiver usuário logado ou slug, não faz nada
+      if (!user || !slug || !restaurant) return;
+      
+      // Se for dono de restaurante, permite acesso
+      if (user.user_metadata?.role === 'restaurant_owner') return;
+      
+      // Para clientes, verificar se estão registrados neste restaurante
+      if (user.user_metadata?.role === 'customer') {
+        const hasAccess = await checkAccess(restaurant.id);
+        
+        // Se não tiver acesso e tiver um restaurante registrado, redirecionar
+        if (!hasAccess && registeredRestaurantSlug && registeredRestaurantSlug !== slug) {
+          toast({
+            title: "Acesso restrito",
+            description: "Você só pode acessar o restaurante onde se cadastrou. Redirecionando...",
+            variant: "destructive",
+          });
+          
+          navigate(`/${registeredRestaurantSlug}`);
+        }
+      }
+    };
+    
     if (slug) {
       fetchRestaurantData();
     }
-  }, [slug]);
+  }, [slug, user, navigate, restaurant, registeredRestaurantSlug, checkAccess]);
 
   const fetchRestaurantData = async () => {
     try {
@@ -147,35 +180,40 @@ const RestaurantView = () => {
     // Se a quantidade for 0, não adiciona ao carrinho
     if (quantity <= 0) return;
     
-    // Verificação de restaurante existente
-    if (user) {
+    // Se o usuário não estiver logado, mostrar modal de login
+    if (!user) {
+      toast({
+        title: "Faça login",
+        description: "É necessário fazer login para adicionar itens ao carrinho.",
+      });
+      setIsAuthModalOpen(true);
+      return;
+    }
+    
+    // Se o usuário estiver logado, verificar se ele pode pedir neste restaurante
+    if (user.user_metadata?.role === 'customer' && restaurant) {
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-          
-        if (error) {
-          toast({
-            title: "Erro",
-            description: "Não foi possível verificar seu perfil",
-            variant: "destructive",
-          });
-          return;
-        }
+        const hasAccess = await checkAccess(restaurant.id);
         
-        const registeredRestaurantId = (data as any).registered_restaurant_id;
-        
-        if (registeredRestaurantId && registeredRestaurantId !== restaurant.id) {
+        if (!hasAccess && registeredRestaurantSlug) {
+          // Se não tem acesso e já está registrado em outro restaurante
           toast({
             title: "Acesso Negado",
             description: "Você só pode fazer pedidos no restaurante onde se cadastrou.",
             variant: "destructive",
           });
+          
+          // Redirecionar para o restaurante correto
+          navigate(`/${registeredRestaurantSlug}`);
           return;
         }
+        
+        // Se não tem restaurante registrado, registrar este
+        if (!registeredRestaurantSlug && restaurant.id) {
+          await registerRestaurant(restaurant.id);
+        }
       } catch (error) {
+        console.error('Erro ao verificar acesso:', error);
         return;
       }
     }
@@ -209,37 +247,40 @@ const RestaurantView = () => {
       e.stopPropagation(); // Prevent card click from triggering
     }
     
+    // Se o usuário não estiver logado, mostrar modal de login
+    if (!user) {
+      toast({
+        title: "Faça login",
+        description: "É necessário fazer login para adicionar itens ao carrinho.",
+      });
+      setIsAuthModalOpen(true);
+      return;
+    }
+    
     // Se o usuário estiver logado, verificar se ele pode pedir neste restaurante
-    if (user) {
+    if (user.user_metadata?.role === 'customer' && restaurant) {
       try {
-        // Usar any para contornar problemas de tipagem com a nova coluna
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-          
-        if (error) {
-          toast({
-            title: "Erro",
-            description: "Não foi possível verificar seu perfil",
-            variant: "destructive",
-          });
-          return;
-        }
+        const hasAccess = await checkAccess(restaurant.id);
         
-        // Verificar se o usuário está registrado em outro restaurante
-        const registeredRestaurantId = (data as any).registered_restaurant_id;
-        
-        if (registeredRestaurantId && registeredRestaurantId !== restaurant.id) {
+        if (!hasAccess && registeredRestaurantSlug) {
+          // Se não tem acesso e já está registrado em outro restaurante
           toast({
             title: "Acesso Negado",
             description: "Você só pode fazer pedidos no restaurante onde se cadastrou.",
             variant: "destructive",
           });
+          
+          // Redirecionar para o restaurante correto
+          navigate(`/${registeredRestaurantSlug}`);
           return;
         }
+        
+        // Se não tem restaurante registrado, registrar este
+        if (!registeredRestaurantSlug && restaurant.id) {
+          await registerRestaurant(restaurant.id);
+        }
       } catch (error) {
+        console.error('Erro ao verificar acesso:', error);
         return;
       }
     }
@@ -251,6 +292,12 @@ const RestaurantView = () => {
       price: product.price,
       image_url: product.image_url,
       restaurant_id: product.restaurant_id
+    });
+    
+    toast({
+      title: "Produto adicionado",
+      description: `${product.name} foi adicionado ao carrinho.`,
+      duration: 2000,
     });
     
     toast({
@@ -681,13 +728,13 @@ const RestaurantView = () => {
         {/* Header fixo */}
         <div className="sticky top-0 z-50">
           <div className="relative">
-            <div className="h-20 md:h-28 bg-gradient-to-r from-green-600 to-green-500 relative">
+            <div className="h-16 bg-green-600 relative">
               <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
                 {/* Versão mobile: com informações e botão de menu */}
-                <div className="flex justify-between items-center md:hidden">
+                <div className="flex justify-between items-center">
                   <div className="flex items-center">
                     {restaurant.logo_url && (
-                      <div className="w-14 h-14 rounded-full overflow-hidden border-3 border-white mr-3 shadow-lg transform hover:scale-105 transition-transform duration-300">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white mr-2 shadow-md">
                         <img 
                           src={restaurant.logo_url} 
                           alt={restaurant.name} 
@@ -696,157 +743,26 @@ const RestaurantView = () => {
                       </div>
                     )}
                     <div>
-                      <h1 className="text-xl font-bold drop-shadow-md typewriter overflow-hidden whitespace-nowrap border-r-4 animate-typing-infinite">{restaurant.name}</h1>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Badge className="bg-white/20 hover:bg-white/30 text-white px-2 py-0.5 text-xs font-medium">
+                      <h1 className="text-lg font-bold">{restaurant.name}</h1>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center text-xs">
                           <Star className="w-3 h-3 fill-white mr-1" />
                           <span>4.8</span>
-                        </Badge>
-                        <Badge className="bg-white/20 hover:bg-white/30 text-white px-2 py-0.5 text-xs font-medium">
+                        </div>
+                        <div className="flex items-center text-xs">
                           <Clock className="w-3 h-3 mr-1" />
                           <span>30-45 min</span>
-                        </Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
                   <div>
-                    {!user ? (
-                      <button 
-                        className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center"
-                        onClick={() => setIsAuthModalOpen(true)}
-                      >
-                        <Menu className="w-6 h-6 text-white" />
-                      </button>
-                    ) : (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="p-2.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center">
-                            <Menu className="w-6 h-6 text-white" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 mr-2">
-                          <DropdownMenuLabel>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{user.user_metadata?.name || 'Usuário'}</span>
-                              <span className="text-xs text-gray-500 truncate">{user.email}</span>
-                            </div>
-                          </DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => navigate('/perfil')} className="flex items-center cursor-pointer">
-                            <User className="mr-2 h-4 w-4" />
-                            <span>Meu Perfil</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate('/meus-pedidos')} className="flex items-center cursor-pointer">
-                            <Package className="mr-2 h-4 w-4" />
-                            <span>Pedidos</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate('/rastrear-pedido')} className="flex items-center cursor-pointer">
-                            <MapPin className="mr-2 h-4 w-4" />
-                            <span>Rastrear</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => signOut()} className="text-red-500 focus:text-red-500 cursor-pointer">
-                            <LogOut className="mr-2 h-4 w-4" />
-                            <span>Sair</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Versão desktop: com botões e informações completas */}
-                <div className="hidden md:block">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      {restaurant.logo_url && (
-                        <div className="w-14 h-14 rounded-full overflow-hidden border-3 border-white mr-3 shadow-lg transform hover:scale-105 transition-transform duration-300">
-                          <img 
-                            src={restaurant.logo_url} 
-                            alt={restaurant.name} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <h1 className="text-3xl font-bold mb-0">{restaurant.name}</h1>
-                        {restaurant.description && (
-                          <p className="text-sm mb-1 max-w-lg opacity-90 line-clamp-1">{restaurant.description}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      {!user ? (
-                        <button 
-                          className="p-2 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center"
-                          onClick={() => setIsAuthModalOpen(true)}
-                        >
-                          <UserCircle className="w-5 h-5 text-white mr-1" />
-                          <span className="text-white text-sm">Entrar</span>
-                        </button>
-                      ) : (
-                        <>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="p-2 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center">
-                                <Menu className="w-5 h-5 text-white" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56 mr-2">
-                              <DropdownMenuLabel>
-                                <div className="flex flex-col">
-                                  <span className="font-medium">{user.user_metadata?.name || 'Usuário'}</span>
-                                  <span className="text-xs text-gray-500 truncate">{user.email}</span>
-                                </div>
-                              </DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => navigate('/perfil')} className="flex items-center cursor-pointer">
-                                <User className="mr-2 h-4 w-4" />
-                                <span>Meu Perfil</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate('/meus-pedidos')} className="flex items-center cursor-pointer">
-                                <Package className="mr-2 h-4 w-4" />
-                                <span>Pedidos</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate('/rastrear-pedido')} className="flex items-center cursor-pointer">
-                                <MapPin className="mr-2 h-4 w-4" />
-                                <span>Rastrear</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => signOut()} className="text-red-500 focus:text-red-500 cursor-pointer">
-                                <LogOut className="mr-2 h-4 w-4" />
-                                <span>Sair</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </>
-                      )}
-                      <button 
-                        className="p-2 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md relative"
-                        onClick={() => setIsCartOpen(true)}
-                      >
-                        <ShoppingCart className="w-5 h-5 text-white" />
-                        <span className="absolute -top-1 -right-1 bg-primary text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                          {getItemCount()}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap mt-1">
-                    <Badge className="bg-primary hover:bg-primary/90 px-2 py-0.5 text-xs font-medium">
-                      <Star className="w-3 h-3 fill-white mr-1" />
-                      <span>4.8</span>
-                    </Badge>
-                    <Badge className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-2 py-0.5 text-xs font-medium">
-                      <Clock className="w-3 h-3 mr-1" />
-                      <span>30-45 min</span>
-                    </Badge>
-                    {restaurant.address && (
-                      <Badge className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-2 py-0.5 text-xs font-medium">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        <span className="truncate max-w-[120px]">{restaurant.address}</span>
-                      </Badge>
-                    )}
+                    <button 
+                      className="p-2 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"
+                      onClick={() => setIsCartOpen(true)}
+                    >
+                      <ShoppingCart className="w-5 h-5 text-white" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -855,7 +771,7 @@ const RestaurantView = () => {
         </div>
 
         {/* Banner e categorias (não fixos) */}
-        <div className="bg-white shadow-sm py-4">
+        <div className="bg-white shadow-sm py-2">
           <div className="max-w-6xl mx-auto px-4">
             <RestaurantBanner 
               restaurantId={restaurant.id} 
@@ -864,11 +780,21 @@ const RestaurantView = () => {
           </div>
         </div>
         
-        {/* Categorias como Chips rolantes horizontalmente (apenas em dispositivos móveis) */}
-        <div className="md:hidden bg-white shadow-sm py-3 border-t border-gray-100">
+        {/* Categorias como Chips rolantes horizontalmente */}
+        <div className="bg-white shadow-sm py-3 border-t border-gray-100">
           <div className="max-w-6xl mx-auto px-4">
             <div className="overflow-x-auto pb-1 hide-scrollbar">
               <div className="flex space-x-2 min-w-max">
+                <button
+                  onClick={() => setSelectedCategory('')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                    selectedCategory === '' 
+                      ? 'bg-primary text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Todos
+                </button>
                 {categories.map((category) => (
                   <button
                     key={category.id}

@@ -659,6 +659,7 @@ export interface Database {
           phone: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string | null
+          registered_restaurant_id: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -669,6 +670,7 @@ export interface Database {
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
+          registered_restaurant_id?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -679,8 +681,17 @@ export interface Database {
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
+          registered_restaurant_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_registered_restaurant_id_fkey"
+            columns: ["registered_restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       restaurant_pages: {
         Row: {
@@ -1153,4 +1164,58 @@ export interface BannerFormValues {
   end_date: string;
   is_active: boolean;
   display_order: number;
+}
+
+// Definição da tabela de rastreamento de entregadores
+export interface DeliveryTracking {
+  id: string;
+  order_id: string;
+  delivery_person_id: string | null;
+  delivery_person_name: string | null;
+  current_latitude: number | null;
+  current_longitude: number | null;
+  last_updated: string;
+  status: Database["public"]["Enums"]["order_status"] | null;
+  estimated_arrival_time: string | null;
+  is_active: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface DeliveryTrackingInsert {
+  id?: string;
+  order_id: string;
+  delivery_person_id?: string | null;
+  delivery_person_name?: string | null;
+  current_latitude?: number | null;
+  current_longitude?: number | null;
+  last_updated?: string;
+  status?: Database["public"]["Enums"]["order_status"] | null;
+  estimated_arrival_time?: string | null;
+  is_active?: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DeliveryTrackingUpdate {
+  id?: string;
+  order_id?: string;
+  delivery_person_id?: string | null;
+  delivery_person_name?: string | null;
+  current_latitude?: number | null;
+  current_longitude?: number | null;
+  last_updated?: string;
+  status?: Database["public"]["Enums"]["order_status"] | null;
+  estimated_arrival_time?: string | null;
+  is_active?: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface RegisterCustomerResponse {
+  success: boolean;
+  user_id?: string;
+  profile_id?: string;
+  restaurant_id?: string;
+  error?: string;
 }

@@ -190,7 +190,8 @@ export function useDashboardStats() {
   // Query para estatísticas principais - prioridade alta
   const { 
     data: stats = initialStats, 
-    error: statsError, 
+    error: statsError,
+    isLoading: loading,
     refetch: refetchStats 
   } = useQuery({
     queryKey: ['dashboardStats', restaurant?.id],
@@ -244,9 +245,13 @@ export function useDashboardStats() {
     refetchOrders();
   }, [refetchStats, refetchOrders]);
 
+  // Retornar tudo junto
   return {
-    stats: combinedStats,
+    stats,
     error: statsError,
-    refetch
+    loading,
+    refetch: () => {
+      refetchStats();
+    }
   };
 } 

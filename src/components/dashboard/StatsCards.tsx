@@ -2,11 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, ShoppingBag, Users, Clock } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import React from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type ChangeType = "positive" | "negative" | "neutral";
 
 const StatsCards = () => {
-  const { stats } = useDashboardStats();
+  const { stats, loading } = useDashboardStats();
 
   // Garantir que sempre temos valores, mesmo que stats seja undefined
   const safeStats = stats || {
@@ -58,14 +59,23 @@ const StatsCards = () => {
             <stat.icon className="h-4 w-4 text-brand-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-            <p className={`text-xs flex items-center mt-1 ${
-              stat.changeType === 'positive' ? 'text-green-600' : 
-              stat.changeType === 'negative' ? 'text-red-600' : 
-              'text-gray-500'
-            }`}>
-              <span>{stat.change} vs. ontem</span>
-            </p>
+            {loading ? (
+              <>
+                <Skeleton className="h-8 w-24 mb-2" />
+                <Skeleton className="h-4 w-32" />
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+                <p className={`text-xs flex items-center mt-1 ${
+                  stat.changeType === 'positive' ? 'text-green-600' : 
+                  stat.changeType === 'negative' ? 'text-red-600' : 
+                  'text-gray-500'
+                }`}>
+                  <span>{stat.change} vs. ontem</span>
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       ))}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -11,14 +11,65 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, LogOut, Settings, Heart, ShoppingBag, Package, MapPin } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserMenuProps {
   className?: string;
 }
 
 export function UserMenu({ className }: UserMenuProps) {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isRestaurantOwner, isCustomer } = useAuth();
   const navigate = useNavigate();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [registeredRestaurantSlug, setRegisteredRestaurantSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Ensure we have the user role available
+    if (user && user.user_metadata?.role) {
+      setUserRole(user.user_metadata.role);
+    }
+    
+    // Verificar se o usuário é cliente e tem um restaurante registrado
+    const checkRegisteredRestaurant = async () => {
+      if (!user || user.user_metadata?.role !== 'customer') return;
+      
+      try {
+        // Primeiro verificar nos metadados do usuário
+        let registeredRestaurantId = user.user_metadata?.registered_restaurant_id;
+        
+        // Se não encontrar nos metadados, verificar no perfil
+        if (!registeredRestaurantId) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('registered_restaurant_id')
+            .eq('id', user.id)
+            .single();
+            
+          if (!error && data && data.registered_restaurant_id) {
+            registeredRestaurantId = data.registered_restaurant_id;
+          }
+        }
+        
+        // Se encontrou um restaurante registrado, buscar o slug
+        if (registeredRestaurantId) {
+          const { data, error } = await supabase
+            .from('restaurants')
+            .select('slug')
+            .eq('id', registeredRestaurantId)
+            .single();
+            
+          if (!error && data) {
+            setRegisteredRestaurantSlug(data.slug);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao verificar restaurante registrado:', error);
+      }
+    };
+    
+    checkRegisteredRestaurant();
+  }, [user]);
 
   if (!user) {
     return null;
@@ -40,7 +91,29 @@ export function UserMenu({ className }: UserMenuProps) {
   };
 
   const handleProfileClick = () => {
-    navigate('/perfil');
+    // Check role from state first, then from functions, then from metadata directly
+    const role = userRole || 
+                (isRestaurantOwner() ? 'restaurant_owner' : 
+                 isCustomer() ? 'customer' : 
+                 user.user_metadata?.role || null);
+    
+    if (role === 'restaurant_owner') {
+      navigate('/configuracoes');
+    } else if (role === 'customer') {
+      // Se for cliente e tiver um restaurante registrado, redirecionar para lá
+      if (registeredRestaurantSlug) {
+        navigate(`/${registeredRestaurantSlug}`);
+      } else {
+        navigate('/cliente/perfil');
+      }
+    } else {
+      // Fallback to default profile page
+      toast({
+        title: "Redirecionando",
+        description: "Você está sendo redirecionado para a página de perfil",
+      });
+      navigate('/cliente/perfil');
+    }
   };
   
   const handleOrdersClick = () => {
@@ -68,12 +141,15 @@ export function UserMenu({ className }: UserMenuProps) {
           <div className="flex flex-col">
             <span className="font-medium">{user.user_metadata?.name || 'Usuário'}</span>
             <span className="text-xs text-gray-500 truncate">{user.email}</span>
+            {registeredRestaurantSlug && (
+              <span className="text-xs text-primary mt-1">Restaurante vinculado</span>
+            )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleProfileClick} className="flex items-center cursor-pointer">
           <User className="mr-2 h-4 w-4" />
-          <span>Meu Perfil</span>
+          <span>{isCustomer() && registeredRestaurantSlug ? 'Meu Restaurante' : 'Meu Perfil'}</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleOrdersClick} className="flex items-center cursor-pointer">
           <Package className="mr-2 h-4 w-4" />

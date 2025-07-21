@@ -4,7 +4,7 @@ import { User, Session } from "@supabase/supabase-js";
 export interface AuthContext {
   user: User | null;
   session: Session | null;
-  signUp: (email: string, password: string, fullName: string, role?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string, role?: string, restaurantId?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   loading: boolean;
@@ -87,14 +87,14 @@ export function setupSessionMonitoring() {
   // Verificar periodicamente se a sessão expirou
   setInterval(() => {
     if (hasSessionExpiredByInactivity()) {
-      console.log("Sessão expirada por inatividade");
+      // Sessão expirada por inatividade
       supabase.auth.signOut().then(() => {
         window.location.href = '/login?expired=inactivity';
       });
     }
     
     if (hasSessionExceededMaxDuration()) {
-      console.log("Sessão excedeu duração máxima");
+      // Sessão excedeu duração máxima
       supabase.auth.signOut().then(() => {
         window.location.href = '/login?expired=maxduration';
       });
@@ -109,19 +109,66 @@ export function resetSessionTimers() {
   setupTokenRenewal();
 }
 
-export const signUp = async (email: string, password: string, fullName: string, role: string = 'restaurant_owner') => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
+export const signUp = async (email: string, password: string, fullName: string, role: string = 'restaurant_owner', restaurantId?: string) => {
+  try {
+    // Primeiro, criar o usuário no Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          role: role,
+          is_profile_complete: false,
+          registered_at: new Date().toISOString(),
+          // Incluir o restaurante registrado nos metadados do usuário se for cliente
+          ...(role === 'customer' && restaurantId ? { registered_restaurant_id: restaurantId } : {})
+        },
+        emailRedirectTo: `${window.location.origin}/${role === 'restaurant_owner' ? 'painel' : ''}`
+      }
+    });
+
+    if (authError) {
+      throw authError;
+    }
+
+    // Se o usuário foi criado com sucesso, criar o perfil
+    if (authData?.user) {
+      const profileData = {
+        id: authData.user.id,
         full_name: fullName,
-        role: role
+        email: email,
+        role: role,
+        updated_at: new Date().toISOString(),
+        // Incluir registered_restaurant_id para clientes se fornecido
+        ...(role === 'customer' && restaurantId ? { registered_restaurant_id: restaurantId } : {})
+      };
+      
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .insert(profileData)
+        .select()
+        .single();
+
+      if (profileError) {
+        try {
+          await supabase.auth.admin.deleteUser(authData.user.id);
+        } catch (cleanupError) {
+          // Silenciar erro de limpeza
+        }
+        throw profileError;
       }
     }
-  });
-  
-  return { error };
+
+    return { error: null };
+  } catch (error: any) {
+    return { 
+      error: {
+        message: error.message || 'Erro ao criar conta',
+        details: error.details || error.hint || ''
+      }
+    };
+  }
 };
 
 export const signIn = async (email: string, password: string) => {

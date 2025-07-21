@@ -2,8 +2,6 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { BottomNav } from "@/components/dashboard/BottomNav";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { Suspense, lazy } from "react";
-import { DashboardLoading } from "@/components/dashboard/DashboardLoading";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -18,9 +16,7 @@ export function DashboardLayout({ children, title = "Carregando..." }: Dashboard
         <main className="flex-1 flex flex-col pb-16 md:pb-0 overflow-x-hidden">
           <DashboardHeader />
           <div className="flex-1 p-4 md:p-6">
-            <Suspense fallback={<DashboardLoading title={title} />}>
-              {children}
-            </Suspense>
+            {children}
           </div>
         </main>
         <BottomNav />

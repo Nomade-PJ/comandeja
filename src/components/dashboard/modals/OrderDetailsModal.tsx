@@ -6,6 +6,11 @@ import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Separator } from "@/components/ui/separator";
+import { useState } from "react";
+import { MapPin, Navigation } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDeliveryTracking } from "@/hooks/useDeliveryTracking";
+import DeliveryTrackingControl from "@/components/dashboard/DeliveryTrackingControl";
 
 interface OrderDetailsModalProps {
   order: OrderWithItems;
@@ -26,10 +31,19 @@ const statusConfig = {
 
 const OrderDetailsModal = ({ order, open, onOpenChange, onUpdateStatus }: OrderDetailsModalProps) => {
   const status = statusConfig[order.status as keyof typeof statusConfig] || { label: order.status, color: "bg-gray-100 text-gray-800 border-gray-200" };
+  const [showTrackingControls, setShowTrackingControls] = useState(false);
+  const { user } = useAuth();
   
   // Função para atualizar o status do pedido
   const handleUpdateStatus = async (newStatus: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'cancelled') => {
-    await onUpdateStatus(order.id, newStatus);
+    const success = await onUpdateStatus(order.id, newStatus);
+    
+    // Se o pedido for colocado em rota de entrega, mostrar os controles de rastreamento
+    if (success && newStatus === 'out_for_delivery') {
+      setShowTrackingControls(true);
+    }
+    
+    return success;
   };
 
   return (
@@ -85,6 +99,15 @@ const OrderDetailsModal = ({ order, open, onOpenChange, onUpdateStatus }: OrderD
                 <div className="grid grid-cols-2 gap-1">
                   <span className="text-sm font-medium">Endereço:</span>
                   <span className="text-sm">{order.delivery_address}</span>
+                </div>
+              )}
+              {order.delivery_method === 'delivery' && (order.delivery_latitude || order.delivery_longitude) && (
+                <div className="grid grid-cols-2 gap-1">
+                  <span className="text-sm font-medium">Coordenadas:</span>
+                  <span className="text-sm flex items-center">
+                    <MapPin className="h-3 w-3 mr-1 text-gray-500" />
+                    {order.delivery_latitude?.toFixed(6)}, {order.delivery_longitude?.toFixed(6)}
+                  </span>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-1">
@@ -165,6 +188,39 @@ const OrderDetailsModal = ({ order, open, onOpenChange, onUpdateStatus }: OrderD
               </div>
             </div>
           </div>
+          
+          {/* Controle de Rastreamento - Mostrado apenas quando o pedido estiver em rota de entrega */}
+          {order.status === 'out_for_delivery' && order.delivery_method === 'delivery' && (
+            <>
+              <Separator />
+              
+              {showTrackingControls ? (
+                <DeliveryTrackingControl 
+                  orderId={order.id} 
+                  deliveryPersonId={user?.id || ''} 
+                  deliveryPersonName={user?.user_metadata?.full_name || 'Entregador'}
+                  onStatusChange={(status) => {
+                    if (status === 'delivered') {
+                      handleUpdateStatus('delivered');
+                    }
+                  }}
+                />
+              ) : (
+                <div className="flex flex-col items-center py-4">
+                  <Button 
+                    onClick={() => setShowTrackingControls(true)}
+                    className="flex items-center"
+                  >
+                    <Navigation className="h-4 w-4 mr-2" />
+                    Iniciar Rastreamento de Entrega
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Inicie o rastreamento para compartilhar sua localização com o cliente
+                  </p>
+                </div>
+              )}
+            </>
+          )}
           
           <Separator />
           

@@ -8,6 +8,7 @@ import FiltersModal from "@/components/dashboard/modals/FiltersModal";
 import { useOrders } from "@/hooks/useOrders";
 import OrdersTable from "@/components/dashboard/tables/OrdersTable";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const DashboardOrders = () => {
   // Estados
@@ -99,8 +100,12 @@ const DashboardOrders = () => {
           </CardHeader>
           <CardContent className="p-0 sm:p-6 pt-0">
             {loading ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">Carregando pedidos...</p>
+              <div className="space-y-4 p-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
               </div>
             ) : (
               <OrdersTable 

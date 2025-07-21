@@ -43,24 +43,8 @@ const Dashboard = () => {
     };
   }, []);
 
-  // Mostrar tela de carregamento enquanto carrega usuário e dados do restaurante
-  if (isAuthLoading || (user && isRestaurantLoading)) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-brand-600 mb-4"></div>
-        <h2 className="text-xl font-medium text-gray-800 mb-2">Carregando dashboard</h2>
-        <p className="text-sm text-gray-500">
-          {isAuthLoading 
-            ? "Verificando autenticação..." 
-            : isRestaurantLoading 
-              ? "Carregando dados do restaurante..." 
-              : "Preparando sistema..."}
-        </p>
-      </div>
-    );
-  }
-
-  if (!user) {
+  // Redirecionar para login se não estiver autenticado
+  if (!isAuthLoading && !user) {
     return null;
   }
 

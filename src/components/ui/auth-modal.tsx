@@ -8,11 +8,21 @@ import { X, User, Mail, Lock, Phone } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useLocation } from 'react-router-dom';
+import { RegisterCustomerResponse } from '@/integrations/supabase/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+}
+
+interface RegisterCustomerParams {
+  email: string;
+  password: string;
+  full_name: string;
+  phone: string;
+  restaurant_slug: string;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -25,6 +35,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [currentRestaurantId, setCurrentRestaurantId] = useState<string | null>(null);
   const [currentRestaurantName, setCurrentRestaurantName] = useState<string | null>(null);
   const location = useLocation();
+  const { signUp, signIn } = useAuth();
   
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -40,9 +51,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   useEffect(() => {
     const fetchCurrentRestaurant = async () => {
       const pathSegments = location.pathname.split('/');
-      if (pathSegments.length >= 3 && pathSegments[1] === 'restaurante') {
-        const slug = pathSegments[2];
-        
+      const slug = pathSegments[1]; // Agora pegamos direto o primeiro segmento após a /
+      
+      if (slug) {
         try {
           const { data, error } = await supabase
             .from('restaurants')
@@ -104,19 +115,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: loginPassword,
-      });
+      const { error } = await signIn(loginEmail, loginPassword);
       
       if (error) {
         throw error;
       }
       
-      toast({
-        title: "Login realizado com sucesso!",
-        description: "Bem-vindo de volta!",
-      });
+      // Não mostramos a mensagem de sucesso aqui, pois será mostrada após o redirecionamento
       
       if (onSuccess) {
         onSuccess();
@@ -134,6 +139,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  // Modifique a função handleRegister para usar o contexto de autenticação
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -160,40 +166,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         return;
       }
 
-      // 1. Criar a conta de usuário
-      const { data, error } = await supabase.auth.signUp({
-        email: registerEmail,
-        password: registerPassword,
-        options: {
-          data: {
-            name: registerName,
-            phone: registerPhone,
-            role: 'customer', // Usar valor de texto em vez do enum para evitar o erro
-            registered_restaurant_id: currentRestaurantId
-          }
-        }
-      });
-      
+      // Usar o contexto de autenticação para registrar o usuário
+      const { error } = await signUp(
+        registerEmail, 
+        registerPassword, 
+        registerName, 
+        'customer', 
+        currentRestaurantId
+      );
+
       if (error) {
         throw error;
       }
-
-      // 2. Registrar o cliente na tabela customers
-      if (data.user) {
-        const { error: customerError } = await supabase
-          .from('customers')
-          .insert({
-            restaurant_id: currentRestaurantId,
-            name: registerName,
-            email: registerEmail,
+      
+      // Atualizar o perfil com o telefone
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (userData?.user) {
+        // Atualizar o perfil com o telefone e garantir que o restaurante está registrado
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ 
             phone: registerPhone,
-            user_id: data.user.id, // Associar ao user_id para referência futura
-            created_at: new Date().toISOString()
-          });
-
-        if (customerError) {
-          console.error('Erro ao registrar cliente:', customerError);
-          // Não vamos interromper o fluxo por causa deste erro
+            registered_restaurant_id: currentRestaurantId
+          })
+          .eq('id', userData.user.id);
+          
+        if (updateError) {
+          console.error('Erro ao atualizar perfil:', updateError);
+          // Continuar mesmo com erro
         }
       }
       

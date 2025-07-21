@@ -64,70 +64,63 @@ const Login = () => {
       }
 
       try {
-        // Obter o papel (role) do usuário
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          // Se houver erro ao buscar o perfil, verificar se há informações de papel nos metadados do usuário
-          const userRole = user.user_metadata?.role || 'customer';
-          
-          // Usar o papel encontrado nos metadados para determinar o redirecionamento
-          if (userRole === 'customer') {
-            // Redirecionamento para cliente
-            const registeredRestaurantId = user.user_metadata?.registered_restaurant_id;
-            if (registeredRestaurantId) {
-              const { data: restaurant } = await supabase
-                .from('restaurants')
-                .select('slug')
-                .eq('id', registeredRestaurantId)
-                .single();
-                
-              if (restaurant?.slug) {
-                navigate(`/${restaurant.slug}`);
-                return;
-              }
-            }
-            navigate('/');
-          } else {
-            // Para admin ou restaurant_owner, redirecionar para o dashboard
-            navigate('/painel');
-          }
-          return;
-        }
-
-        // Verificar o tipo de usuário e redirecionar adequadamente
-        const userRole = data?.role;
+        // Primeiro, vamos verificar se o usuário é um cliente
+        const userRole = user.user_metadata?.role || 'customer';
         
         if (userRole === 'customer') {
-          // Se for cliente, verificar restaurante registrado nos metadados
-          const registeredRestaurantId = user.user_metadata?.registered_restaurant_id;
+          // Verificar primeiro no perfil do banco de dados
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('registered_restaurant_id')
+            .eq('id', user.id)
+            .single();
           
+          let registeredRestaurantId = null;
+          
+          // Se encontrou o perfil e tem restaurante registrado
+          if (!profileError && profileData?.registered_restaurant_id) {
+            registeredRestaurantId = profileData.registered_restaurant_id;
+          } 
+          // Se não encontrou no perfil, tenta nos metadados do usuário
+          else if (user.user_metadata?.registered_restaurant_id) {
+            registeredRestaurantId = user.user_metadata.registered_restaurant_id;
+          }
+          
+          // Se temos um restaurante registrado, redirecionar para ele
           if (registeredRestaurantId) {
-            const { data: restaurant } = await supabase
+            const { data: restaurant, error: restaurantError } = await supabase
               .from('restaurants')
               .select('slug')
               .eq('id', registeredRestaurantId)
               .single();
               
-            if (restaurant?.slug) {
+            if (!restaurantError && restaurant?.slug) {
+              // Mostrar mensagem de sucesso com o nome do restaurante
+              toast.success(`Login realizado com sucesso! Redirecionando para o restaurante.`);
               navigate(`/${restaurant.slug}`);
               return;
             }
           }
           
-          // Fallback para home se não encontrar restaurante
+          // Se não tem restaurante registrado ou não encontrou o restaurante, vai para home
+          toast.success('Login realizado com sucesso!');
           navigate('/');
-        } else {
-          // Se for admin ou dono de restaurante, vai para o dashboard
+          return;
+        } else if (userRole === 'restaurant_owner' || userRole === 'admin') {
+          // Para donos de restaurante e admins, redirecionar para o dashboard
+          toast.success('Login realizado com sucesso! Redirecionando para o painel.');
           navigate('/painel');
+          return;
+        } else {
+          // Para outros tipos de usuário, redirecionar para home
+          toast.success('Login realizado com sucesso!');
+          navigate('/');
+          return;
         }
       } catch (err) {
-        // Em caso de erro, manda para o dashboard como fallback
-        navigate('/painel');
+        // Em caso de erro, mostrar mensagem e redirecionar para home
+        toast.error('Erro ao verificar perfil do usuário');
+        navigate('/');
       }
     };
     
@@ -154,10 +147,8 @@ const Login = () => {
         } else {
           toast.error("Erro ao fazer login: " + error.message);
         }
-      } else {
-        toast.success("Login realizado com sucesso!");
-        // O redirecionamento é gerenciado pelo useEffect
       }
+      // Não mostramos a mensagem de sucesso aqui, pois será mostrada no useEffect após o redirecionamento
     } catch (error) {
       toast.error("Erro inesperado ao fazer login");
     } finally {
@@ -170,8 +161,7 @@ const Login = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-t-primary border-primary/30 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500 font-medium">Verificando autenticação...</p>
+          <div className="w-16 h-16 border-4 border-t-primary border-primary/30 rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
     );

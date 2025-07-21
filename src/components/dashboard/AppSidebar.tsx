@@ -162,7 +162,7 @@ export function AppSidebar() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="text-base">Minha Conta</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/perfil")} className="py-2 text-base">
+              <DropdownMenuItem onClick={() => navigate("/configuracoes")} className="py-2 text-base">
                 <User className="mr-2 h-5 w-5" />
                 Perfil
               </DropdownMenuItem>

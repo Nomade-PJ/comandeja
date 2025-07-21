@@ -24,12 +24,21 @@ export function useRestaurantNameCheck(name: string, currentRestaurantId?: strin
       setError(null);
 
       try {
-        const { data, error } = await supabase
+        // Gerar um slug a partir do nome para verificação
+        const slug = name.trim().toLowerCase().replace(/\s+/g, '');
+        
+        // Construir a consulta base
+        let query = supabase
           .from('restaurants')
           .select('id')
-          .ilike('name', name.trim())
-          .neq('id', currentRestaurantId || '')
-          .maybeSingle();
+          .eq('slug', slug);
+        
+        // Adicionar filtro por ID apenas se um ID válido for fornecido
+        if (currentRestaurantId && currentRestaurantId.trim() !== '') {
+          query = query.neq('id', currentRestaurantId);
+        }
+        
+        const { data, error } = await query.maybeSingle();
 
         if (error) throw error;
         
