@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShoppingCart, Star, Clock, MapPin, Search, Phone, Instagram, Facebook, ChevronDown, Info, Heart, UserCircle, Settings, User, Plus, Minus, Menu, Package, LogOut } from "lucide-react";
+import { UserMenu } from '@/components/ui/user-menu';
 import { Input } from "@/components/ui/input";
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { CartDrawer } from '@/components/ui/cart-drawer';
 import { AuthModal } from '@/components/ui/auth-modal';
 import { formatCurrency } from '@/lib/utils';
@@ -756,7 +757,10 @@ const RestaurantView = () => {
                       </div>
                     </div>
                   </div>
-                  <div>
+                  <div className="flex items-center gap-2">
+                    {user && (
+                      <UserMenu className="text-white" />
+                    )}
                     <button 
                       className="p-2 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"
                       onClick={() => setIsCartOpen(true)}
@@ -780,8 +784,8 @@ const RestaurantView = () => {
           </div>
         </div>
         
-        {/* Categorias como Chips rolantes horizontalmente */}
-        <div className="bg-white shadow-sm py-3 border-t border-gray-100">
+        {/* Categorias como Chips rolantes horizontalmente - Apenas Mobile */}
+        <div className="md:hidden bg-white shadow-sm py-3 border-t border-gray-100">
           <div className="max-w-6xl mx-auto px-4">
             <div className="overflow-x-auto pb-1 hide-scrollbar">
               <div className="flex space-x-2 min-w-max">

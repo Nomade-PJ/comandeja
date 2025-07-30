@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useProducts } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
-import DirectImageUpload from "@/components/dashboard/DirectImageUpload";
+import { ImageUpload } from "@/components/dashboard/ImageUpload";
 import { useToast } from '@/components/ui/use-toast';
 
 interface Product {
@@ -166,9 +166,10 @@ const EditProductModal = ({ open, onOpenChange, product }: EditProductModalProps
             />
           </div>
           
-          <DirectImageUpload 
-            onImageUrlChange={handleImageUrlChange}
-            initialImageUrl={imageUrl}
+          <ImageUpload 
+            onChange={handleImageUrlChange}
+            value={imageUrl}
+            title="Imagem do Produto"
           />
           
           <div className="space-y-2">

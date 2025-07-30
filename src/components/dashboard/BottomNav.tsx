@@ -13,6 +13,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useRestaurant } from "@/hooks/useRestaurant";
 
 const mainNavItems = [
   {
@@ -55,8 +56,12 @@ const moreMenuItems = [
   },
 ];
 
+// Itens do menu sem configurações (para o botão Menu)
+const menuItemsWithoutSettings = moreMenuItems.filter(item => item.title !== "Configurações");
+
 export function BottomNav() {
   const location = useLocation();
+  const { restaurant } = useRestaurant();
 
   return (
     <div className="fixed bottom-0 left-0 right-0 border-t bg-white py-2 px-4 md:hidden">
@@ -75,20 +80,35 @@ export function BottomNav() {
           </Link>
         ))}
 
+        <Link to="/configuracoes">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-12 w-12 rounded-full p-0 overflow-hidden hover:bg-transparent"
+          >
+            {restaurant?.logo_url ? (
+              <img 
+                src={restaurant.logo_url} 
+                alt="Logo do Restaurante" 
+                className="w-full h-full object-cover rounded-full"
+              />
+            ) : (
+              <Settings className="h-6 w-6 text-brand-600" />
+            )}
+          </Button>
+        </Link>
+
         <Sheet>
           <SheetTrigger asChild>
-            <Button
-              size="icon"
-              variant="outline"
-              className="h-12 w-12 rounded-full border-2 border-brand-600"
-            >
-              <Plus className="h-6 w-6 text-brand-600" />
-            </Button>
+            <button className="flex flex-col items-center gap-1 text-muted-foreground">
+              <Menu className="h-6 w-6" />
+              <span className="text-xs">Menu</span>
+            </button>
           </SheetTrigger>
           <SheetContent side="bottom">
             <div className="grid gap-4 py-4">
               <div className="grid gap-4">
-                {moreMenuItems.map((item) => (
+                {menuItemsWithoutSettings.map((item) => (
                   <Link
                     key={item.title}
                     to={item.url}
@@ -105,11 +125,6 @@ export function BottomNav() {
             </div>
           </SheetContent>
         </Sheet>
-
-        <button className="flex flex-col items-center gap-1 text-muted-foreground">
-          <Menu className="h-6 w-6" />
-          <span className="text-xs">Menu</span>
-        </button>
       </nav>
     </div>
   );

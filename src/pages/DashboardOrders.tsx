@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import NewOrderModal from "@/components/dashboard/modals/NewOrderModal";
 import FiltersModal from "@/components/dashboard/modals/FiltersModal";
 import { useOrders } from "@/hooks/useOrders";
-import OrdersTable from "@/components/dashboard/tables/OrdersTable";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
+// Importar a versão lazy da tabela de pedidos
+import LazyOrdersTable from "@/components/dashboard/tables/LazyOrdersTable";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const DashboardOrders = () => {
@@ -16,6 +17,7 @@ const DashboardOrders = () => {
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [isSearching, setIsSearching] = useState(false);
   
   // Hook de pedidos
   const { orders, loading, fetchOrders, createOrder, updateOrderStatus } = useOrders();
@@ -28,7 +30,10 @@ const DashboardOrders = () => {
   // Função para lidar com a busca
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchOrders({ status: statusFilter, search: searchQuery });
+    setIsSearching(true);
+    fetchOrders({ status: statusFilter, search: searchQuery }).finally(() => {
+      setIsSearching(false);
+    });
   };
 
   // Função para aplicar filtros
@@ -36,6 +41,34 @@ const DashboardOrders = () => {
     setStatusFilter(filters.status);
     fetchOrders({ status: filters.status, search: searchQuery });
   };
+
+  // Renderizar estado de carregamento
+  if (loading && orders.length === 0) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <Skeleton className="h-8 w-64 mb-2" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+            <Skeleton className="h-10 w-40" />
+          </div>
+
+          <Skeleton className="h-14 w-full" />
+
+          <div className="flex flex-col items-center justify-center p-12 border rounded-lg bg-gray-50">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-brand-600 mb-4"></div>
+            <p className="text-base font-medium text-gray-700 mb-1">Carregando pedidos...</p>
+            <p className="text-sm text-gray-500 mb-4">Isso pode levar alguns segundos</p>
+            <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full bg-brand-500 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -76,7 +109,20 @@ const DashboardOrders = () => {
               <Filter className="w-4 h-4 mr-2" />
               Filtros
             </Button>
-            <Button type="submit" className="flex-1 sm:flex-auto">Buscar</Button>
+            <Button 
+              type="submit" 
+              className="flex-1 sm:flex-auto"
+              disabled={isSearching}
+            >
+              {isSearching ? (
+                <>
+                  <div className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent border-white rounded-full" />
+                  Buscando...
+                </>
+              ) : (
+                'Buscar'
+              )}
+            </Button>
           </div>
         </form>
 
@@ -98,35 +144,24 @@ const DashboardOrders = () => {
               )}
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0 sm:p-6 pt-0">
-            {loading ? (
-              <div className="space-y-4 p-4">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ) : (
-              <OrdersTable 
-                orders={orders} 
-                onUpdateStatus={updateOrderStatus} 
-              />
-            )}
+          <CardContent className="p-0">
+            {/* Usar a versão lazy da tabela de pedidos */}
+            <LazyOrdersTable orders={orders} onUpdateStatus={updateOrderStatus} />
           </CardContent>
         </Card>
       </div>
 
-      <NewOrderModal 
-        open={showNewOrderModal} 
-        onOpenChange={setShowNewOrderModal} 
+      {/* Modais */}
+      <NewOrderModal
+        open={showNewOrderModal}
+        onOpenChange={setShowNewOrderModal}
         onCreateOrder={createOrder}
       />
-      <FiltersModal 
-        open={showFiltersModal} 
+      <FiltersModal
+        open={showFiltersModal}
         onOpenChange={setShowFiltersModal}
-        type="orders"
         onApplyFilters={handleApplyFilters}
+        type="orders"
         initialFilters={{ status: statusFilter }}
       />
     </DashboardLayout>

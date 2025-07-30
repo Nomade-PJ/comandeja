@@ -1,4 +1,4 @@
-import { DashboardLayout } from "../components/layout/DashboardLayout";
+import { DashboardLayout } from "../components/dashboard/DashboardLayout";
 import { useState, useEffect } from "react";
 import { useRestaurantNameCheck } from "../hooks/useRestaurantNameCheck";
 
@@ -469,6 +469,19 @@ const DashboardSettings = () => {
                             />
                           </div>
                         </div>
+                        
+                        {/* Informações sobre Taxa Dinâmica */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <h4 className="font-medium text-blue-900 mb-2">🚀 Sistema de Taxa Dinâmica Ativo</h4>
+                          <div className="text-sm text-blue-800 space-y-1">
+                            <p>• <strong>Taxa base:</strong> Aplicada até 2km de distância</p>
+                            <p>• <strong>Taxa adicional:</strong> +R$ 1,50 por km extra</p>
+                            <p>• <strong>Horário de pico:</strong> +20% na taxa (11:30-14h e 18-21h)</p>
+                            <p>• <strong>Frete grátis:</strong> Pedidos acima de R$ 50,00</p>
+                            <p>• <strong>Tempo estimado:</strong> Calculado automaticamente por distância</p>
+                          </div>
+                        </div>
+                        
                         <div className="flex items-center justify-between pt-4 border-t">
                           <div className="space-y-0.5">
                             <Label>Aceitar Pedidos</Label>

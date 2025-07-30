@@ -34,6 +34,15 @@ const OrderDetailsModal = ({ order, open, onOpenChange, onUpdateStatus }: OrderD
   const [showTrackingControls, setShowTrackingControls] = useState(false);
   const { user } = useAuth();
   
+  // Debug: verificar se os itens estão chegando
+  console.log('🔍 OrderDetailsModal - Order data:', {
+    orderNumber: order.order_number,
+    items: order.items,
+    order_items: order.order_items,
+    hasItems: !!(order.items || order.order_items),
+    itemsLength: (order.items || order.order_items)?.length || 0
+  });
+  
   // Função para atualizar o status do pedido
   const handleUpdateStatus = async (newStatus: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'cancelled') => {
     const success = await onUpdateStatus(order.id, newStatus);
@@ -96,9 +105,17 @@ const OrderDetailsModal = ({ order, open, onOpenChange, onUpdateStatus }: OrderD
                 </span>
               </div>
               {order.delivery_method === 'delivery' && order.delivery_address && (
-                <div className="grid grid-cols-2 gap-1">
-                  <span className="text-sm font-medium">Endereço:</span>
-                  <span className="text-sm">{order.delivery_address}</span>
+                <div className="space-y-1">
+                  <span className="text-sm font-medium">Endereço de Entrega:</span>
+                  <div className="text-sm bg-white p-2 rounded border">
+                    <div>{order.delivery_address}</div>
+                    {order.delivery_city && order.delivery_state && (
+                      <div className="text-muted-foreground">
+                        {order.delivery_city} - {order.delivery_state}
+                        {order.delivery_zip_code && ` • CEP: ${order.delivery_zip_code}`}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
               {order.delivery_method === 'delivery' && (order.delivery_latitude || order.delivery_longitude) && (
@@ -143,8 +160,8 @@ const OrderDetailsModal = ({ order, open, onOpenChange, onUpdateStatus }: OrderD
           <div>
             <h4 className="text-sm font-medium mb-2">Itens do Pedido</h4>
             <div className="border rounded-md divide-y">
-              {order.items && order.items.length > 0 ? (
-                order.items.map((item) => (
+              {(order.items || order.order_items) && (order.items || order.order_items).length > 0 ? (
+                (order.items || order.order_items).map((item) => (
                   <div key={item.id} className="p-3 flex justify-between items-center">
                     <div>
                       <div className="font-medium">{item.product_name}</div>

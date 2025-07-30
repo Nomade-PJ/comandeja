@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import StatsCards from "@/components/dashboard/StatsCards";
 import RecentOrders from "@/components/dashboard/RecentOrders";
-import SalesChart from "@/components/dashboard/SalesChart";
+// Importar a versão lazy do SalesChart
+import LazySalesChart from "@/components/dashboard/LazySalesChart";
 import TopProducts from "@/components/dashboard/TopProducts";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { useEffect, useState } from "react";
@@ -188,7 +189,7 @@ const DashboardOverview = ({ onRealtimeError }: DashboardOverviewProps) => {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <SalesChart />
+          <LazySalesChart />
         </div>
         <div>
           <TopProducts />

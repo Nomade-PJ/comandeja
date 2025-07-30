@@ -1,4 +1,4 @@
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useState, useEffect } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,11 +24,13 @@ import { ptBR } from "date-fns/locale";
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { BannerModal } from '@/components/dashboard/modals/BannerModal';
 import { useBanners } from '@/hooks/useBanners';
+import { supabase } from '@/integrations/supabase/client';
 import { useRestaurant } from '@/hooks/useRestaurant';
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import type { Banner, BannerFormValues } from '@/integrations/supabase/types';
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/use-toast";
 
 // Adicionar a interface Product
 interface Product {
@@ -84,9 +86,16 @@ const DashboardProducts = () => {
   const { products, loading: productsLoading } = useProducts();
   const { categories, loading: categoriesLoading, moveCategory, reorderCategories } = useCategories();
   const { restaurant } = useRestaurant();
-  const { banners, createBanner, updateBanner, deleteBanner, fetchBanners } = useBanners({
+  const { banners, setBanners, createBanner, updateBanner, deleteBanner, fetchBanners } = useBanners({
     restaurantId: restaurant?.id || '',
   });
+  
+  // Só buscar banners quando tivermos um ID de restaurante válido
+  useEffect(() => {
+    if (restaurant?.id) {
+      fetchBanners();
+    }
+  }, [restaurant?.id, fetchBanners]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,12 +170,6 @@ const DashboardProducts = () => {
     }));
   };
 
-  useEffect(() => {
-    if (restaurant?.id) {
-      fetchBanners();
-    }
-  }, [restaurant?.id, fetchBanners]);
-
   const handleCreateBanner = async (data: BannerFormValues) => {
     if (!restaurant?.id) return;
     await createBanner(data);
@@ -188,10 +191,65 @@ const DashboardProducts = () => {
   };
 
   const handleToggleBanner = async (banner: Banner) => {
-    await updateBanner(banner.id, {
-      ...banner,
-      is_active: !banner.is_active,
-    });
+    // Atualizar o estado local imediatamente para feedback visual instantâneo
+    const newIsActive = !banner.is_active;
+    const originalBanner = {...banner};
+    const updatedBanner = {...banner, is_active: newIsActive};
+    
+    // Atualizar o estado local dos banners
+    setBanners(prev => 
+      prev.map(b => 
+        b.id === banner.id 
+          ? updatedBanner
+          : b
+      )
+    );
+    
+    try {
+      // Criar uma cópia modificada da função updateBanner para não chamar fetchBanners
+      const { error } = await supabase
+        .from('banners')
+        .update({
+          ...banner,
+          is_active: newIsActive,
+        })
+        .eq('id', banner.id)
+        .eq('restaurant_id', restaurant?.id || '');
+      
+      if (error) {
+        // Se houver erro, reverter a alteração local
+        setBanners(prev => 
+          prev.map(b => 
+            b.id === banner.id 
+              ? originalBanner
+              : b
+          )
+        );
+        
+        // Mostrar mensagem de erro
+        toast({
+          title: "Erro ao atualizar banner",
+          description: "Não foi possível alterar o status do banner. Tente novamente.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      // Em caso de erro, reverter a alteração local
+      setBanners(prev => 
+        prev.map(b => 
+          b.id === banner.id 
+            ? originalBanner
+            : b
+        )
+      );
+      
+      // Mostrar mensagem de erro
+      toast({
+        title: "Erro ao atualizar banner",
+        description: "Ocorreu um erro ao atualizar o status do banner.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (productsLoading || categoriesLoading) {
@@ -232,10 +290,13 @@ const DashboardProducts = () => {
                 </div>
               </div>
               
-              <div className="space-y-4">
-                <Skeleton className="h-40 w-full" />
-                <Skeleton className="h-40 w-full" />
-                <Skeleton className="h-40 w-full" />
+              <div className="flex flex-col items-center justify-center p-12 border rounded-lg bg-gray-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-brand-600 mb-4"></div>
+                <p className="text-base font-medium text-gray-700 mb-1">Carregando produtos...</p>
+                <p className="text-sm text-gray-500 mb-4">Isso pode levar alguns segundos</p>
+                <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-full bg-brand-500 rounded-full animate-pulse"></div>
+                </div>
               </div>
             </CardContent>
           </Card>

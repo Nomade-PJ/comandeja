@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getCachedData } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useRestaurant } from '@/hooks/useRestaurant';
 
@@ -37,6 +37,81 @@ export const useProducts = () => {
   const queryClient = useQueryClient();
   const { restaurant } = useRestaurant();
   
+  // Função para buscar produtos com cache
+  const fetchProducts = useCallback(async () => {
+    if (!restaurant?.id) return [];
+    
+    // Verificar se já temos dados em cache na memória via React Query
+    const cachedData = queryClient.getQueryData(['products', restaurant.id]);
+    if (cachedData) {
+      return cachedData;
+    }
+    
+    // Usar localStorage para cache persistente
+    try {
+      const cachedString = localStorage.getItem(`products_${restaurant.id}`);
+      if (cachedString) {
+        const { data, timestamp } = JSON.parse(cachedString);
+        const cacheAge = Date.now() - timestamp;
+        
+        // Se o cache for recente (menos de 1 minuto), use-o imediatamente
+        if (cacheAge < 60000) {
+          return data;
+        }
+        
+        // Se o cache existir mas for mais antigo, ainda o retornamos,
+        // mas iniciamos uma atualização em segundo plano
+        if (data && Array.isArray(data)) {
+          // Atualizar em segundo plano
+          setTimeout(() => {
+            supabase
+              .from('products')
+              .select('*, categories(name)')
+              .eq('restaurant_id', restaurant.id)
+              .order('display_order', { ascending: true })
+              .then(({ data: freshData }) => {
+                if (freshData) {
+                  localStorage.setItem(`products_${restaurant.id}`, JSON.stringify({
+                    data: freshData,
+                    timestamp: Date.now()
+                  }));
+                  queryClient.setQueryData(['products', restaurant.id], freshData);
+                }
+              });
+          }, 100);
+          
+          return data;
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao ler cache de produtos:", error);
+    }
+    
+    // Se não houver cache ou ocorrer erro, buscar do servidor
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, categories(name)')
+      .eq('restaurant_id', restaurant.id)
+      .order('display_order', { ascending: true });
+    
+    if (error) {
+      console.error('Erro ao buscar produtos:', error);
+      return [];
+    }
+    
+    // Armazenar no cache local
+    try {
+      localStorage.setItem(`products_${restaurant.id}`, JSON.stringify({
+        data: data || [],
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.error("Erro ao salvar cache de produtos:", e);
+    }
+    
+    return data || [];
+  }, [restaurant?.id, queryClient]);
+  
   // Buscar todos os produtos com React Query
   const { 
     data: products = [], 
@@ -45,22 +120,7 @@ export const useProducts = () => {
     refetch 
   } = useQuery({
     queryKey: ['products', restaurant?.id],
-    queryFn: async () => {
-      if (!restaurant?.id) return [];
-      
-      const { data, error } = await supabase
-        .from('products')
-        .select('*, categories(name)')
-        .eq('restaurant_id', restaurant.id)
-        .order('display_order', { ascending: true });
-      
-      if (error) {
-        console.error('Erro ao buscar produtos:', error);
-        return [];
-      }
-      
-      return data || [];
-    },
+    queryFn: fetchProducts,
     enabled: !!restaurant?.id,
     staleTime: 60000, // 1 minuto
     gcTime: 300000, // 5 minutos
@@ -203,7 +263,7 @@ export const useProducts = () => {
     products,
     isLoading,
     error,
-    loading: createProductMutation.isPending || updateProductMutation.isPending || deleteProductMutation.isPending,
+    loading: isLoading || createProductMutation.isPending || updateProductMutation.isPending || deleteProductMutation.isPending,
     createProduct,
     updateProduct,
     deleteProduct,

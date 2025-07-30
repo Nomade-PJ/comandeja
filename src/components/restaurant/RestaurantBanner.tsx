@@ -3,9 +3,11 @@ import { Card } from '@/components/ui/card';
 import { useBanners } from '@/hooks/useBanners';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Search } from 'lucide-react';
+import { ExternalLink, Search, AlertCircle, WifiOff, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 
 interface RestaurantBannerProps {
   restaurantId: string;
@@ -13,41 +15,67 @@ interface RestaurantBannerProps {
 }
 
 export function RestaurantBanner({ restaurantId, onSearch }: RestaurantBannerProps) {
-  const { banners, loading, fetchBanners } = useBanners({ 
-    restaurantId,
+  const { banners, loading, error, isOffline, fetchBanners } = useBanners({ 
+    restaurantId: restaurantId || '',
     filterActive: true
   });
   const { toast } = useToast();
   const [api, setApi] = useState<CarouselApi>();
-  const intervalRef = useRef<number>();
+  const intervalRef = useRef<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [retryCount, setRetryCount] = useState(0);
+  const [hasErrored, setHasErrored] = useState(false);
+  
+  // Limpar e configurar o carrossel quando os banners ou a API mudam
   useEffect(() => {
-    fetchBanners();
-  }, [fetchBanners]);
-
-  // Configura a rotação automática quando houver mais de 1 banner
-  useEffect(() => {
-    if (!api || banners.length <= 1) return;
-
-    // Limpa o intervalo anterior se existir
-    if (intervalRef.current) {
-      window.clearInterval(intervalRef.current);
+    // Se não temos API ou banners suficientes, não fazer nada
+    if (!api || banners.length <= 1) {
+      return;
     }
-
-    // Configura novo intervalo para rotação a cada 5 segundos
-    // Sempre avança para o próximo banner, o loop: true cuida do retorno ao início
+    
+    // Limpar qualquer intervalo existente
+    if (intervalRef.current !== null) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
+    // Configurar novo intervalo para rotação a cada 5 segundos
     intervalRef.current = window.setInterval(() => {
       api.scrollNext();
     }, 5000);
-
-    // Limpa o intervalo quando o componente for desmontado
+    
+    // Limpar o intervalo quando o componente for desmontado
     return () => {
-      if (intervalRef.current) {
+      if (intervalRef.current !== null) {
         window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [api, banners.length]);
+
+  // Efeito para lidar com erros
+  useEffect(() => {
+    if (error && !isOffline) {
+      setHasErrored(true);
+      
+      if (retryCount < 3) {
+        const timer = setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          fetchBanners(true);
+        }, 3000 * Math.pow(2, retryCount)); // Backoff exponencial: 3s, 6s, 12s
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [error, retryCount, fetchBanners, isOffline]);
+
+  // Efeito para limpar o estado de erro quando os banners são carregados com sucesso
+  useEffect(() => {
+    if (banners.length > 0 && hasErrored) {
+      setHasErrored(false);
+      setRetryCount(0);
+    }
+  }, [banners.length, hasErrored]);
 
   const handleCouponClick = (couponCode: string | null) => {
     if (couponCode) {
@@ -64,7 +92,32 @@ export function RestaurantBanner({ restaurantId, onSearch }: RestaurantBannerPro
     onSearch?.(searchQuery);
   };
 
-  if (loading) {
+  // Se não temos ID de restaurante, mostrar um esqueleto sem tentar carregar
+  if (!restaurantId) {
+    return (
+      <div className="bg-white shadow-sm py-4">
+        <div className="max-w-6xl mx-auto px-4">
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar produtos..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button type="submit">
+              Buscar
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+  
+  // Se estiver carregando e não temos banners, mostrar um esqueleto
+  if (loading && banners.length === 0) {
     return (
       <div className="bg-white shadow-sm py-4">
         <div className="max-w-6xl mx-auto px-4">
@@ -74,6 +127,87 @@ export function RestaurantBanner({ restaurantId, onSearch }: RestaurantBannerPro
     );
   }
 
+  // Se estiver offline, mostrar alerta específico
+  if (isOffline) {
+    return (
+      <div className="bg-white shadow-sm py-4">
+        <div className="max-w-6xl mx-auto px-4">
+          <Alert className="mb-4 border-amber-200 bg-amber-50">
+            <WifiOff className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-800">Você está offline</AlertTitle>
+            <AlertDescription className="text-amber-700 flex items-center justify-between">
+              <span>Não foi possível carregar os banners. Verifique sua conexão com a internet.</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200"
+                onClick={() => fetchBanners(true)}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Tentar novamente
+              </Button>
+            </AlertDescription>
+          </Alert>
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar produtos..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button type="submit">
+              Buscar
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Se houver erro persistente após várias tentativas e não temos banners para mostrar
+  if (hasErrored && retryCount >= 3 && banners.length === 0) {
+    return (
+      <div className="bg-white shadow-sm py-4">
+        <div className="max-w-6xl mx-auto px-4">
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erro ao carregar banners</AlertTitle>
+            <AlertDescription className="flex items-center justify-between">
+              <span>Não foi possível carregar os banners. Por favor, recarregue a página.</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="bg-red-100 border-red-300 text-red-800 hover:bg-red-200"
+                onClick={() => fetchBanners(true)}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Tentar novamente
+              </Button>
+            </AlertDescription>
+          </Alert>
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar produtos..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button type="submit">
+              Buscar
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Se não temos banners para mostrar
   if (!banners.length) {
     return (
       <div className="bg-white shadow-sm py-4">
@@ -97,6 +231,7 @@ export function RestaurantBanner({ restaurantId, onSearch }: RestaurantBannerPro
     );
   }
 
+  // Renderizar o carrossel de banners
   return (
     <div className="bg-white shadow-sm">
       <div className="max-w-6xl mx-auto">
@@ -113,10 +248,11 @@ export function RestaurantBanner({ restaurantId, onSearch }: RestaurantBannerPro
               <CarouselItem key={banner.id}>
                 <Card className="relative overflow-hidden border-0 rounded-none">
                   <div className="h-32 sm:h-36 md:h-40 lg:h-44 relative">
-                    <img
+                    <OptimizedImage
                       src={banner.image_url}
                       alt={banner.title}
                       className="absolute inset-0 w-full h-full object-cover"
+                      fallbackSrc="https://via.placeholder.com/800x400?text=Imagem+indisponível"
                     />
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">

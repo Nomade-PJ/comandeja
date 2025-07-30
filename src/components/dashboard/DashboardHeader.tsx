@@ -3,18 +3,29 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const DashboardHeader = () => {
+  const isMobile = useIsMobile();
+  
   const handleNotificationClick = () => {
     // TODO: Implement notification panel
     console.log("Opening notifications");
   };
 
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="flex items-center justify-between px-6 py-4">
+    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
+      <div className={`flex items-center justify-between ${isMobile ? 'px-0 -my-6' : 'px-6 py-4'}`}>
         <div className="flex items-center">
-          <SidebarTrigger className="text-gray-600 hover:text-brand-600" />
+          {isMobile ? (
+            <img 
+              src="/logo.png" 
+              alt="ComandaJá" 
+              className="h-28 w-auto"
+            />
+          ) : (
+            <SidebarTrigger className="text-gray-600 hover:text-brand-600" />
+          )}
         </div>
         
         <div className="flex items-center gap-4">

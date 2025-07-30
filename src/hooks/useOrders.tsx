@@ -5,6 +5,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useCustomer } from './useCustomer';
 import { Database } from '@/integrations/supabase/types';
 import { realtimeService } from '@/integrations/supabase/realtimeService';
+import { notificationService } from '@/services/notificationService';
 
 type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'cancelled';
 type PaymentMethod = 'credit_card' | 'debit_card' | 'pix' | 'cash' | 'voucher';
@@ -35,6 +36,7 @@ export interface OrderWithItems {
   updated_at: string;
   notes?: string;
   items?: OrderItem[];
+  order_items?: OrderItem[];
   restaurants?: {
     id: string;
     name: string;
@@ -66,17 +68,68 @@ export const useOrders = () => {
   const { getOrCreateCustomer } = useCustomer();
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // Função para buscar todos os pedidos do restaurante
   const fetchOrders = useCallback(async (filters?: { status?: string, search?: string }) => {
     if (!restaurant) return;
     
-    setLoading(true);
+    // Não mostrar loading se já tivermos dados e for apenas uma atualização
+    const showLoading = !initialLoadComplete || orders.length === 0;
+    if (showLoading) {
+      setLoading(true);
+    }
+    
+    try {
+      // Verificar cache local primeiro
+      const cacheKey = `orders_${restaurant.id}_${filters?.status || 'all'}_${filters?.search || ''}`;
+      try {
+        const cachedString = localStorage.getItem(cacheKey);
+        if (cachedString) {
+          const { data, timestamp } = JSON.parse(cachedString);
+          const cacheAge = Date.now() - timestamp;
+          
+          // Se o cache for recente (menos de 30 segundos), use-o imediatamente
+          if (cacheAge < 30000 && data && Array.isArray(data)) {
+            setOrders(data);
+            setInitialLoadComplete(true);
+            
+            // Se o cache for mais antigo que 30 segundos mas menos que 2 minutos,
+            // ainda o usamos, mas iniciamos uma atualização em segundo plano
+            if (cacheAge < 120000) {
+              // Atualizar em segundo plano após um pequeno atraso
+              setTimeout(() => fetchOrdersFromServer(filters, false), 200);
+            }
+            
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao ler cache de pedidos:", error);
+      }
+      
+      // Se não houver cache ou for muito antigo, buscar do servidor
+      await fetchOrdersFromServer(filters, showLoading);
+      
+    } catch (error) {
+      console.error('Erro ao buscar pedidos:', error);
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  }, [restaurant, orders.length, initialLoadComplete]);
+  
+  // Função auxiliar para buscar pedidos do servidor
+  const fetchOrdersFromServer = async (filters?: { status?: string, search?: string }, updateLoading = true) => {
+    if (!restaurant) return;
     
     try {
       let query = supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          order_items(*)
+        `)
         .eq('restaurant_id', restaurant.id)
         .order('created_at', { ascending: false });
       
@@ -105,13 +158,27 @@ export const useOrders = () => {
         return;
       }
       
+      // Armazenar no cache local
+      const cacheKey = `orders_${restaurant.id}_${filters?.status || 'all'}_${filters?.search || ''}`;
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({
+          data: data || [],
+          timestamp: Date.now()
+        }));
+      } catch (e) {
+        console.error("Erro ao salvar cache de pedidos:", e);
+      }
+      
       setOrders(data || []);
+      setInitialLoadComplete(true);
     } catch (error) {
-      console.error('Erro ao buscar pedidos:', error);
+      console.error('Erro ao buscar pedidos do servidor:', error);
     } finally {
-      setLoading(false);
+      if (updateLoading) {
+        setLoading(false);
+      }
     }
-  }, [restaurant]);
+  };
 
   // Função para buscar um pedido específico com seus itens
   const fetchOrderWithItems = useCallback(async (orderId: string) => {
@@ -331,8 +398,26 @@ export const useOrders = () => {
         return false;
       }
       
-      // Atualizar a lista de pedidos
-      fetchOrders();
+      // Atualizar localmente para feedback imediato
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? {...order, status: newStatus, updated_at: new Date().toISOString()} 
+            : order
+        )
+      );
+      
+      // Encontrar o pedido para obter informações para notificação
+      const order = orders.find(o => o.id === orderId);
+      
+      // Enviar notificação para o cliente
+      if (order) {
+        await notificationService.notifyStatusChange(
+          order.order_number, 
+          newStatus, 
+          order.customer_name
+        );
+      }
       
       toast({
         title: 'Status atualizado',
@@ -344,7 +429,14 @@ export const useOrders = () => {
       console.error('Erro ao atualizar status do pedido:', error);
       return false;
     }
-  }, [restaurant, fetchOrders]);
+  }, [restaurant]);
+
+  // Carregar pedidos iniciais
+  useEffect(() => {
+    if (restaurant && !initialLoadComplete) {
+      fetchOrders();
+    }
+  }, [restaurant, fetchOrders, initialLoadComplete]);
 
   // Configurar assinatura em tempo real para pedidos
   useEffect(() => {
@@ -356,7 +448,8 @@ export const useOrders = () => {
       restaurant.id,
       () => {
         console.log('Atualização em tempo real detectada na tabela orders');
-        fetchOrders();
+        // Não mostrar loading para atualizações em tempo real
+        fetchOrdersFromServer(undefined, false);
       }
     );
     
@@ -364,7 +457,7 @@ export const useOrders = () => {
     return () => {
       unsubscribe();
     };
-  }, [restaurant, fetchOrders]);
+  }, [restaurant]);
 
   return {
     orders,

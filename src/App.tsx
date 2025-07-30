@@ -13,6 +13,9 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { useAuth } from "./hooks/useAuth";
 import enableConsoleFilter from "./utils/console-filter";
+import useOrderNotifications from "./hooks/useOrderNotifications";
+import useAutoReviews from "./hooks/useAutoReviews";
+import ReviewModal from "./components/ui/review-modal";
 
 // Importações lazy para melhorar o desempenho
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -75,6 +78,18 @@ const ProfileRedirect = () => {
 };
 
 const App = () => {
+  // Ativar notificações de pedidos em tempo real
+  useOrderNotifications();
+  
+  // Sistema de avaliações automático
+  const {
+    currentReviewOrder,
+    showReviewModal,
+    setShowReviewModal,
+    markReviewCompleted,
+    createReviewDiscount
+  } = useAutoReviews();
+
   useEffect(() => {
     // Inicializar o serviço de realtime
     realtimeService.initialize();
@@ -213,6 +228,19 @@ const App = () => {
       
       <Toaster />
       <Sonner />
+      
+      {/* Modal de Avaliação Automática */}
+      {currentReviewOrder && (
+        <ReviewModal
+          open={showReviewModal}
+          onOpenChange={setShowReviewModal}
+          order={currentReviewOrder}
+          onReviewSubmitted={() => {
+            markReviewCompleted();
+            createReviewDiscount(currentReviewOrder.restaurant_id);
+          }}
+        />
+      )}
     </QueryClientProvider>
   );
 }

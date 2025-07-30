@@ -4,17 +4,12 @@ import Footer from "@/components/landing/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { 
   MapPin, 
   Phone, 
   Mail, 
   Clock, 
   MessageCircle, 
-  Send,
-  CheckCircle,
   Facebook,
   Instagram,
   Linkedin,
@@ -22,95 +17,63 @@ import {
   Youtube
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
+import { ContactForm, FormField } from "@/components/ui/contact-form";
+
+// Dados dos departamentos para o formulário de contato
+const departments = [
+  { value: "comercial", label: "Comercial" },
+  { value: "suporte", label: "Suporte Técnico" },
+  { value: "financeiro", label: "Financeiro" },
+  { value: "parcerias", label: "Parcerias" },
+  { value: "imprensa", label: "Imprensa" },
+  { value: "outros", label: "Outros" }
+];
 
 const Contato = () => {
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    subject: "",
-    message: ""
-  });
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    // Simulação de envio de formulário
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-      toast({
-        title: "Mensagem enviada com sucesso!",
-        description: "Nossa equipe entrará em contato em breve.",
-      });
-    }, 1500);
-  };
-  
-  const contactInfo = [
+  // Definir os campos do formulário
+  const contatoFormFields: FormField[] = [
     {
-      icon: <MapPin className="w-5 h-5 text-primary" />,
-      title: "Endereço",
-      details: [
-        "Av. Paulista, 1000 - Bela Vista",
-        "São Paulo - SP, 01310-100",
-        "Brasil"
-      ]
+      name: "name",
+      label: "Nome completo",
+      type: "text",
+      placeholder: "Seu nome",
+      required: true,
+      colSpan: 1
     },
     {
-      icon: <Phone className="w-5 h-5 text-primary" />,
-      title: "Telefone",
-      details: [
-        "+55 (11) 4000-0000",
-        "+55 (11) 99999-9999"
-      ]
+      name: "email",
+      label: "Email",
+      type: "email",
+      placeholder: "seu@email.com",
+      required: true,
+      colSpan: 1
     },
     {
-      icon: <Mail className="w-5 h-5 text-primary" />,
-      title: "Email",
-      details: [
-        "contato@comandeja.com.br",
-        "suporte@comandeja.com.br"
-      ]
+      name: "phone",
+      label: "Telefone",
+      type: "tel",
+      placeholder: "(00) 00000-0000",
+      colSpan: 1
     },
     {
-      icon: <Clock className="w-5 h-5 text-primary" />,
-      title: "Horário de Atendimento",
-      details: [
-        "Segunda a Sexta: 9h às 18h",
-        "Sábado: 9h às 13h"
-      ]
+      name: "subject",
+      label: "Departamento",
+      type: "select",
+      required: true,
+      options: departments,
+      colSpan: 1
+    },
+    {
+      name: "message",
+      label: "Mensagem",
+      type: "textarea",
+      placeholder: "Como podemos ajudar?",
+      required: true,
+      colSpan: 2
     }
-  ];
-  
-  const departments = [
-    { value: "", label: "Selecione um departamento" },
-    { value: "comercial", label: "Comercial" },
-    { value: "suporte", label: "Suporte Técnico" },
-    { value: "financeiro", label: "Financeiro" },
-    { value: "parcerias", label: "Parcerias" },
-    { value: "imprensa", label: "Imprensa" },
-    { value: "outros", label: "Outros" }
-  ];
-  
-  const socialMedia = [
-    { icon: <Facebook className="w-5 h-5" />, name: "Facebook", url: "#" },
-    { icon: <Instagram className="w-5 h-5" />, name: "Instagram", url: "#" },
-    { icon: <Linkedin className="w-5 h-5" />, name: "LinkedIn", url: "#" },
-    { icon: <Twitter className="w-5 h-5" />, name: "Twitter", url: "#" },
-    { icon: <Youtube className="w-5 h-5" />, name: "YouTube", url: "#" }
   ];
 
   return (
@@ -139,181 +102,92 @@ const Contato = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row gap-12">
             <div className="lg:w-1/2">
-              <h2 className="text-3xl font-bold mb-6">Envie-nos uma mensagem</h2>
-              <p className="text-gray-600 mb-8">
-                Preencha o formulário abaixo e nossa equipe entrará em contato o mais breve possível.
-              </p>
-              
-              {!submitted ? (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nome completo *</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        placeholder="Seu nome"
-                        required
-                        value={formData.name}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email *</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        required
-                        value={formData.email}
-                        onChange={handleChange}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Telefone</Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        placeholder="(00) 00000-0000"
-                        value={formData.phone}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="subject">Departamento *</Label>
-                      <select
-                        id="subject"
-                        name="subject"
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        value={formData.subject}
-                        onChange={handleChange}
-                      >
-                        {departments.map((dept, index) => (
-                          <option key={index} value={dept.value}>{dept.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Mensagem *</Label>
-                    <Textarea
-                      id="message"
-                      name="message"
-                      placeholder="Como podemos ajudar?"
-                      rows={6}
-                      required
-                      value={formData.message}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-primary hover:bg-primary/90 text-white"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></div>
-                        Enviando...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4 mr-2" />
-                        Enviar Mensagem
-                      </>
-                    )}
-                  </Button>
-                  
-                  <p className="text-xs text-gray-500 text-center">
-                    Ao enviar este formulário, você concorda com nossa Política de Privacidade.
-                  </p>
-                </form>
-              ) : (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
-                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Mensagem enviada com sucesso!</h3>
-                  <p className="text-gray-600 mb-6">
-                    Obrigado por entrar em contato conosco. Nossa equipe responderá em até 24 horas úteis.
-                  </p>
-                  <Button 
-                    className="bg-primary hover:bg-primary/90 text-white"
-                    onClick={() => setSubmitted(false)}
-                  >
-                    Enviar nova mensagem
-                  </Button>
-                </div>
-              )}
+              <ContactForm 
+                title="Envie-nos uma mensagem"
+                description="Preencha o formulário abaixo e nossa equipe entrará em contato o mais breve possível."
+                fields={contatoFormFields}
+                submitButtonText="Enviar Mensagem"
+              />
             </div>
             
             <div className="lg:w-1/2">
-              <div className="bg-gray-50 p-8 rounded-lg h-full">
-                <h2 className="text-3xl font-bold mb-6">Informações de Contato</h2>
-                
-                <div className="space-y-6 mb-8">
-                  {contactInfo.map((info, index) => (
-                    <div key={index} className="flex items-start">
-                      <div className="bg-primary/10 p-2 rounded-full mr-4">
-                        {info.icon}
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-1">{info.title}</h4>
-                        {info.details.map((detail, detailIndex) => (
-                          <p key={detailIndex} className="text-gray-600">
-                            {detail}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+              <h2 className="text-3xl font-bold mb-6">Informações de Contato</h2>
+              <div className="space-y-8">
+                <div className="flex items-start gap-4">
+                  <div className="bg-primary/10 p-3 rounded-full">
+                    <MapPin className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">Endereço</h3>
+                    <p className="text-gray-600">
+                      Av. Paulista, 1000, 10º andar<br />
+                      Bela Vista, São Paulo - SP<br />
+                      CEP: 01310-100
+                    </p>
+                  </div>
                 </div>
                 
-                <div className="border-t border-gray-200 pt-6">
-                  <h4 className="font-semibold mb-4">Siga-nos nas redes sociais</h4>
-                  <div className="flex space-x-4">
-                    {socialMedia.map((social, index) => (
-                      <a 
-                        key={index} 
-                        href={social.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="bg-gray-200 hover:bg-primary/10 p-3 rounded-full transition-colors"
-                        aria-label={social.name}
-                      >
-                        {social.icon}
-                      </a>
-                    ))}
+                <div className="flex items-start gap-4">
+                  <div className="bg-primary/10 p-3 rounded-full">
+                    <Phone className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">Telefone</h3>
+                    <p className="text-gray-600">
+                      +55 (11) 3456-7890<br />
+                      +55 (11) 98765-4321 (WhatsApp)
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="bg-primary/10 p-3 rounded-full">
+                    <Mail className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">Email</h3>
+                    <p className="text-gray-600">
+                      contato@comandeja.com.br<br />
+                      suporte@comandeja.com.br
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="bg-primary/10 p-3 rounded-full">
+                    <Clock className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">Horário de Atendimento</h3>
+                    <p className="text-gray-600">
+                      Segunda a Sexta: 9h às 18h<br />
+                      Sábado: 9h às 13h
+                    </p>
                   </div>
                 </div>
               </div>
+              
+              <div className="mt-8">
+                <h3 className="font-semibold text-lg mb-4">Siga-nos nas redes sociais</h3>
+                <div className="flex gap-4">
+                  <a href="#" className="bg-gray-100 p-3 rounded-full hover:bg-gray-200 transition-colors">
+                    <Facebook className="h-5 w-5 text-gray-700" />
+                  </a>
+                  <a href="#" className="bg-gray-100 p-3 rounded-full hover:bg-gray-200 transition-colors">
+                    <Instagram className="h-5 w-5 text-gray-700" />
+                  </a>
+                  <a href="#" className="bg-gray-100 p-3 rounded-full hover:bg-gray-200 transition-colors">
+                    <Linkedin className="h-5 w-5 text-gray-700" />
+                  </a>
+                  <a href="#" className="bg-gray-100 p-3 rounded-full hover:bg-gray-200 transition-colors">
+                    <Twitter className="h-5 w-5 text-gray-700" />
+                  </a>
+                  <a href="#" className="bg-gray-100 p-3 rounded-full hover:bg-gray-200 transition-colors">
+                    <Youtube className="h-5 w-5 text-gray-700" />
+                  </a>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
-      
-      {/* Map Section */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Nossa Localização</h2>
-          
-          <div className="aspect-[16/9] max-w-5xl mx-auto bg-gray-200 rounded-lg overflow-hidden">
-            {/* Placeholder for Google Maps iframe */}
-            <div className="w-full h-full flex items-center justify-center">
-              <p className="text-gray-500">Mapa do Google seria carregado aqui</p>
-            </div>
-          </div>
-          
-          <div className="max-w-5xl mx-auto mt-8 text-center">
-            <h3 className="text-xl font-semibold mb-2">Comandejá - Sede São Paulo</h3>
-            <p className="text-gray-600">
-              Av. Paulista, 1000 - Bela Vista, São Paulo - SP, 01310-100, Brasil
-            </p>
           </div>
         </div>
       </section>
@@ -349,33 +223,25 @@ const Contato = () => {
             </div>
             
             <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2">Vocês oferecem suporte presencial?</h3>
+              <h3 className="text-xl font-semibold mb-2">Vocês oferecem treinamento?</h3>
               <p className="text-gray-600">
-                Sim, oferecemos suporte presencial para clientes empresariais na região de São Paulo. 
-                Para outras localidades, podemos agendar visitas técnicas com custo adicional.
+                Sim, oferecemos treinamento completo para todos os novos clientes, além de 
+                webinars regulares e materiais de apoio na nossa central de ajuda.
               </p>
             </div>
           </div>
         </div>
       </section>
       
-      {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-primary/10 to-primary/5">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-6">Precisa de ajuda imediata?</h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Nossa equipe de suporte está disponível para ajudar você em tempo real.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Button size="lg" className="bg-primary hover:bg-primary/90 text-white">
-              <MessageCircle className="mr-2 w-5 h-5" />
-              Iniciar Chat ao Vivo
-            </Button>
-            <Link to="/central-ajuda">
-              <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary/10">
-                Acessar Central de Ajuda
-              </Button>
-            </Link>
+      {/* Map Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12">Onde Estamos</h2>
+          <div className="h-96 bg-gray-200 rounded-lg">
+            {/* Aqui seria inserido um mapa real */}
+            <div className="flex items-center justify-center h-full">
+              <p className="text-gray-500">Mapa será carregado aqui</p>
+            </div>
           </div>
         </div>
       </section>
